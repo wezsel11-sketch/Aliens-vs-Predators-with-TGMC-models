@@ -1,0 +1,8 @@
+# Build outputs and third-party art are not committed.
+*.wad
+*.png
+*.log
+tgmc_sprites/
+som_trooper_dirs/
+som_heavy_dirs/
+marine_dirs/

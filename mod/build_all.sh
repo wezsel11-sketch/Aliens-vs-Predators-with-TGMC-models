@@ -1,0 +1,83 @@
+#!/bin/bash
+# Rebuild every PWAD of the TGMC-in-Freedoom mod from source checkouts.
+#
+# usage: build_all.sh TGMC_ROOT FREEDOOM_ROOT IWAD OUT_DIR
+#   TGMC_ROOT      checkout of tgstation/terragov-marine-corps
+#   FREEDOOM_ROOT  checkout of freedoom/freedoom (sprites/ and buildcfg.txt are used)
+#   IWAD           freedoom1.wad or freedoom2.wad (the palette is read from its PLAYPAL lump)
+#   OUT_DIR        where extracted sprites and the built WADs go (not committed)
+#
+# Needs Python 3 with Pillow, and ffmpeg for the sound WADs.
+set -euo pipefail
+
+if [ "$#" -ne 4 ]; then
+  sed -n '2,11p' "$0" | sed 's/^# \{0,1\}//'
+  exit 1
+fi
+TGMC=$(realpath "$1"); FD=$(realpath "$2"); IWAD=$(realpath "$3"); OUT=$(mkdir -p "$4" && realpath "$4")
+HERE=$(cd "$(dirname "$0")" && pwd)
+PY="python3 -I"
+CFG="$FD/buildcfg.txt"; SPR="$FD/sprites"
+TS="$OUT/tgmc_sprites"; WADS="$OUT/wads"; TMP="$OUT/tmp"
+mkdir -p "$TS" "$WADS" "$TMP"
+
+echo "== 1. extract TGMC sheets"
+(cd "$TGMC" && $PY "$HERE/extract_dmi.py" . "$TS" \
+  icons/Xeno/castes/runner.dmi icons/Xeno/castes/spitter.dmi \
+  icons/mob/human_races/r_human.dmi \
+  icons/mob/modular/som_armor.dmi icons/mob/modular/som_helmets.dmi \
+  icons/mob/clothing/uniforms/marine_uniforms.dmi icons/mob/clothing/suits/marine_armor.dmi \
+  icons/mob/clothing/headwear/marine_helmets.dmi \
+  icons/obj/items/ammo/rifle.dmi icons/obj/items/ammo/packet.dmi icons/obj/items/ammo/rocket.dmi \
+  icons/mob/inhands/weapons/ammo_left.dmi \
+  icons/obj/items/guns/shotguns.dmi icons/obj/items/guns/shotguns64.dmi \
+  icons/obj/items/guns/machineguns64.dmi icons/obj/items/guns/special64.dmi \
+  icons/obj/items/guns/plasma64.dmi icons/obj/items/weapons/twohanded.dmi)
+
+echo "== 2. composite humanoids (S, N, E, W per unit) and lying poses"
+# compose_units.py reads sheets from tgmc_sprites/ next to itself, so run it from a copy beside them.
+cp "$HERE/compose_units.py" "$HERE/doomlib.py" "$OUT/"
+$PY "$OUT/compose_units.py" "$OUT/marine_dirs" \
+  x:marine_uniforms:marine_jumpsuit x:marine_armor:grenadier x:marine_helmets:helmet
+$PY "$OUT/compose_units.py" "$OUT/som_trooper_dirs" x:som_armor:som_medium_black x:som_helmets:som_helmet_black
+$PY "$OUT/compose_units.py" "$OUT/som_heavy_dirs" x:som_armor:som_heavy_black x:som_helmets:som_helmet_black
+$PY - "$OUT" <<'EOF'
+import sys
+from PIL import Image
+out = sys.argv[1]
+for name in ("marine", "som_trooper", "som_heavy"):
+    Image.open(f"{out}/{name}_dirs/d0.png").convert("RGBA").rotate(-90, expand=True).save(f"{out}/lying_{name}.png")
+EOF
+
+echo "== 3. actor sprite WADs"
+build() { # prefix walk-frames death-frames dirs-prefix death-png wad
+  $PY "$HERE/build_sprites.py" --prefix "$1" --frames ABCD --attack-frames EFG \
+    --d0 "$4"0.png --d1 "$4"1.png --d2 "$4"2.png --d3 "$4"3.png \
+    --death-frames "$2" --death-png "$3" \
+    --freedoom "$SPR" --buildcfg "$CFG" --playpal "$IWAD" --out "$WADS/$5"
+}
+build TROO IJKLMN "$TS/runner/Runner_Dead_f0_d0.png" "$TS/runner/Runner_Walking_f0_d" xeno_troo.wad
+build PLAY NOPQRSTUVW "$OUT/lying_marine.png" "$OUT/marine_dirs/d" marine_player.wad
+build POSS HIJKLMN "$OUT/lying_som_trooper.png" "$OUT/som_trooper_dirs/d" som_trooper.wad
+build SPOS HIJKLMN "$OUT/lying_som_heavy.png" "$OUT/som_heavy_dirs/d" som_heavy.wad
+build CPOS HIJKLMNOPQRST "$TS/spitter/Spitter_Dead_f0_d0.png" "$TS/spitter/Spitter_Walking_f0_d" spitter_chaingunner.wad
+
+echo "== 4. pickups"
+$PY "$HERE/build_ammo_pwad.py" --sprites "$TS" --freedoom "$SPR" --playpal "$IWAD" --out "$WADS/ammo_pickups.wad"
+$PY "$HERE/build_weapon_pickups.py" --sprites "$TS" --freedoom "$SPR" --buildcfg "$CFG" \
+  --playpal "$IWAD" --out "$WADS/weapon_pickups.wad"
+
+echo "== 5. sounds"
+V="$TGMC/sound/voice"; G="$TGMC/sound/weapons/guns/fire"
+$PY "$HERE/build_sounds.py" --max-seconds 1.0 --out "$WADS/gun_sounds.wad" \
+  --map DSPISTOL="$G/pistol.ogg" DSSHOTGN="$G/shotgun.ogg"
+$PY "$HERE/build_sounds.py" --max-seconds 1.2 --out "$WADS/voice_sounds.wad" --map \
+  DSPOSIT1="$V/human/male/warcry_1.ogg" DSPOSIT2="$V/human/male/warcry_2.ogg" DSPOSIT3="$V/human/male/warcry_3.ogg" \
+  DSPOPAIN="$V/human/male/pain_1.ogg" \
+  DSPODTH1="$V/human/male/scream_1.ogg" DSPODTH2="$V/human/male/scream_2.ogg" DSPODTH3="$V/human/male/scream_3.ogg" \
+  DSBGSIT1="$V/alien/hiss1.ogg" DSBGSIT2="$V/alien/hiss2.ogg" DSBGACT="$V/alien/growl1.ogg" \
+  DSBGDTH1="$V/alien/death.ogg" DSBGDTH2="$V/alien/death2.ogg" \
+  DSCLAW="$V/alien/pounce.ogg" DSFIRSHT="$V/alien/spitacid.ogg"
+
+echo "== done: WADs in $WADS"
+ls -1 "$WADS"

@@ -16,6 +16,20 @@ material.
   `lumps/playpal/playpal` file, which is not the real lump and gives wrong colors.
 - Python 3 with Pillow, and ffmpeg (for `build_sounds.py`)
 
+## One-step build
+
+    mod/build_all.sh <tgmc-checkout> <freedoom-checkout> <freedoom1.wad|freedoom2.wad> <out-dir>
+
+Extracts the TGMC sheets, composites the humanoids, and builds every PWAD into
+`<out-dir>/wads/`: the five actor sets (`xeno_troo`, `marine_player`,
+`som_trooper`, `som_heavy`, `spitter_chaingunner`), `ammo_pickups`,
+`weapon_pickups`, and the sound sets (`gun_sounds`, `voice_sounds`). The steps
+below are what it runs.
+
+Actor mapping: player = TGMC marine; imp (`TROO`) = xeno Runner; zombieman
+(`POSS`) = SOM trooper; shotgun guy (`SPOS`) = SOM heavy; chaingunner (`CPOS`) =
+Spitter. The chaingunner only spawns in Freedoom 2 (Doom 2 monster).
+
 ## Pipeline
 
 1. **Extract** each TGMC `.dmi` into per-state, per-direction PNGs with a
@@ -53,9 +67,14 @@ material.
        python3 build_sounds.py --map DSPISTOL=pistol.ogg DSSHOTGN=shotgun.ogg \
            --max-seconds 1.0 --out gun_sounds.wad
 
-5. **Ammo pickups.** `build_ammo_pwad.py` replaces CLIP, SHEL, ROCK, and AMMO
-   with TGMC art, scaled from the Freedoom pickup and anchored with
-   `buildcfg.txt` offsets. Input: an extracted TGMC sheet directory.
+5. **Ammo and weapon pickups.** `build_ammo_pwad.py` replaces CLIP, SHEL, ROCK,
+   and AMMO; `build_weapon_pickups.py` replaces SHOT, SGN2, MGUN, LAUN, PLAS, BFUG,
+   and CSAW with TGMC gun art (CSAW uses the powered axe; TGMC has no chainsaw).
+   Both scale from the Freedoom pickup and anchor with `buildcfg.txt` offsets.
+
+6. **Not included: first-person weapon views.** TGMC has only side-view gun art;
+   rotating it upright produced thin sticks that did not read as weapons, so
+   Freedoom's own first-person sprites are kept.
 
 ## Testing
 
@@ -66,6 +85,13 @@ error for any PWAD that contains a sprite marker block (S_START/S_END), even an
 empty one. The same WADs run cleanly in `dsda-doom`.
 
     dsda-doom -iwad freedoom1.wad -file <mod>.wad -warp 1 1
+
+To see the actors up close, `build_testmap.py` copies a map from an IWAD and
+adds one of each replaced actor in front of the player start (no geometry
+changes, so no node builder is needed):
+
+    python3 build_testmap.py freedoom2.wad testmap.wad --map MAP01 --distance 300
+    dsda-doom -iwad freedoom2.wad -file testmap.wad <mod>.wad ... -warp 1
 
 `doomlib.py` holds the shared palette, patch encoding, and PWAD writer. It has
 no separate tests; the built WADs were checked by decoding the lumps and by

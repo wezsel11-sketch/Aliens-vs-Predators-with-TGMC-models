@@ -32,15 +32,20 @@ echo "== 1. extract TGMC sheets"
   icons/mob/inhands/weapons/ammo_left.dmi \
   icons/obj/items/guns/shotguns.dmi icons/obj/items/guns/shotguns64.dmi \
   icons/obj/items/guns/machineguns64.dmi icons/obj/items/guns/special64.dmi \
-  icons/obj/items/guns/plasma64.dmi icons/obj/items/weapons/twohanded.dmi)
+  icons/obj/items/guns/plasma64.dmi icons/obj/items/weapons/twohanded.dmi \
+  icons/mob/clothing/uniforms/ert_uniforms.dmi icons/mob/clothing/feet.dmi icons/mob/clothing/hands.dmi \
+  icons/mob/inhands/guns/rifles_right_1.dmi icons/mob/inhands/guns/shotguns_right_1.dmi)
 
 echo "== 2. composite humanoids (S, N, E, W per unit) and lying poses"
 # compose_units.py reads sheets from tgmc_sprites/ next to itself, so run it from a copy beside them.
 cp "$HERE/compose_units.py" "$HERE/doomlib.py" "$OUT/"
 $PY "$OUT/compose_units.py" "$OUT/marine_dirs" \
   x:marine_uniforms:marine_jumpsuit x:marine_armor:grenadier x:marine_helmets:helmet
-$PY "$OUT/compose_units.py" "$OUT/som_trooper_dirs" x:som_armor:som_medium_black x:som_helmets:som_helmet_black
-$PY "$OUT/compose_units.py" "$OUT/som_heavy_dirs" x:som_armor:som_heavy_black x:som_helmets:som_helmet_black
+# SOM: sleeved uniform, boots, gloves, black armor, helmet, and a held weapon (V-31 rifle / V-51 shotgun).
+$PY "$OUT/compose_units.py" "$OUT/som_trooper_dirs" x:ert_uniforms:som_uniform x:feet:som x:hands:som \
+  x:som_armor:som_medium_black x:som_helmets:som_helmet_black x:rifles_right_1:v31_w
+$PY "$OUT/compose_units.py" "$OUT/som_heavy_dirs" x:ert_uniforms:som_uniform x:feet:som x:hands:som \
+  x:som_armor:som_heavy_black x:som_helmets:som_helmet_black x:shotguns_right_1:v51_w
 $PY - "$OUT" <<'EOF'
 import sys
 from PIL import Image
@@ -56,11 +61,15 @@ build() { # prefix walk-frames death-frames dirs-prefix death-png wad
     --death-frames "$2" --death-png "$3" \
     --freedoom "$SPR" --buildcfg "$CFG" --playpal "$IWAD" --out "$WADS/$5"
 }
-build TROO IJKLMN "$TS/runner/Runner_Dead_f0_d0.png" "$TS/runner/Runner_Walking_f0_d" xeno_troo.wad
+# The imp slot is a Spitter too: it shoots fireballs, which are recolored green below.
+build TROO IJKLMN "$TS/spitter/Spitter_Dead_f0_d0.png" "$TS/spitter/Spitter_Walking_f0_d" xeno_troo.wad
 build PLAY NOPQRSTUVW "$OUT/lying_marine.png" "$OUT/marine_dirs/d" marine_player.wad
 build POSS HIJKLMN "$OUT/lying_som_trooper.png" "$OUT/som_trooper_dirs/d" som_trooper.wad
 build SPOS HIJKLMN "$OUT/lying_som_heavy.png" "$OUT/som_heavy_dirs/d" som_heavy.wad
 build CPOS HIJKLMNOPQRST "$TS/spitter/Spitter_Dead_f0_d0.png" "$TS/spitter/Spitter_Walking_f0_d" spitter_chaingunner.wad
+
+$PY "$HERE/build_recolor.py" --freedoom "$SPR" --buildcfg "$CFG" --playpal "$IWAD" --prefix BAL1 \
+  --out "$WADS/green_fireball.wad"
 
 echo "== 4. pickups"
 $PY "$HERE/build_ammo_pwad.py" --sprites "$TS" --freedoom "$SPR" --playpal "$IWAD" --out "$WADS/ammo_pickups.wad"
@@ -71,13 +80,14 @@ echo "== 5. sounds"
 V="$TGMC/sound/voice"; G="$TGMC/sound/weapons/guns/fire"
 $PY "$HERE/build_sounds.py" --max-seconds 1.0 --out "$WADS/gun_sounds.wad" \
   --map DSPISTOL="$G/pistol.ogg" DSSHOTGN="$G/shotgun.ogg"
-$PY "$HERE/build_sounds.py" --max-seconds 1.2 --out "$WADS/voice_sounds.wad" --map \
+# sound_slots.deh points the chaingunner/imp at the alien sound slots (DEHACKED lump).
+$PY "$HERE/build_sounds.py" --max-seconds 1.2 --out "$WADS/voice_sounds.wad" --raw DEHACKED="$HERE/sound_slots.deh" --map \
   DSPOSIT1="$V/human/male/warcry_1.ogg" DSPOSIT2="$V/human/male/warcry_2.ogg" DSPOSIT3="$V/human/male/warcry_3.ogg" \
   DSPOPAIN="$V/human/male/pain_1.ogg" \
   DSPODTH1="$V/human/male/scream_1.ogg" DSPODTH2="$V/human/male/scream_2.ogg" DSPODTH3="$V/human/male/scream_3.ogg" \
   DSBGSIT1="$V/alien/hiss1.ogg" DSBGSIT2="$V/alien/hiss2.ogg" DSBGACT="$V/alien/growl1.ogg" \
   DSBGDTH1="$V/alien/death.ogg" DSBGDTH2="$V/alien/death2.ogg" \
-  DSCLAW="$V/alien/pounce.ogg" DSFIRSHT="$V/alien/spitacid.ogg"
+  DSCLAW="$V/alien/pounce.ogg" DSFIRSHT="$V/alien/spitacid.ogg" DSDMPAIN="$V/alien/growl2.ogg"
 
 echo "== done: WADs in $WADS"
 ls -1 "$WADS"

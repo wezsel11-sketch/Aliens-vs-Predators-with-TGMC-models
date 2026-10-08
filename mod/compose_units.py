@@ -18,8 +18,17 @@ def sheet_index(sheet):
     return {s["name"]: s["files"] for s in m["states"]}
 
 
+CANVAS = (64, 32)  # wide enough for 64px gun art; narrower layers are centred horizontally
+
+
 def pick(index, state, d, sheet):
     return Image.open(f"{S}/tgmc_sprites/{sheet}/{index[state][d]}").convert("RGBA")
+
+
+def paste_centered(canvas, layer):
+    layer_canvas = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
+    layer_canvas.paste(layer, ((canvas.width - layer.width) // 2, 0))
+    canvas.alpha_composite(layer_canvas)
 
 
 def main():
@@ -29,11 +38,11 @@ def main():
     gear_idx = {sh: sheet_index(sh) for _, sh, _ in gear}
     os.makedirs(outdir, exist_ok=True)
     for d in range(4):
-        canvas = Image.new("RGBA", (32, 32), (0, 0, 0, 0))
+        canvas = Image.new("RGBA", CANVAS, (0, 0, 0, 0))
         for name in BODY_ORDER:
-            canvas.alpha_composite(pick(body, name, d, "r_human"))
+            paste_centered(canvas, pick(body, name, d, "r_human"))
         for _, sheet, state in gear:
-            canvas.alpha_composite(pick(gear_idx[sheet], state, d, sheet))
+            paste_centered(canvas, pick(gear_idx[sheet], state, d, sheet))
         canvas.save(f"{outdir}/d{d}.png")
     print("wrote", outdir)
 

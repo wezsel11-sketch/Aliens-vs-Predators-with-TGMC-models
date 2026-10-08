@@ -4,6 +4,7 @@ Doom's DMX sound lump: u16 format (3), u16 rate (11025), u32 sample count, then
 8-bit unsigned mono PCM with 16 bytes of padding each side (count includes padding).
 
   --map NAME=ogg_path [NAME=ogg_path ...]   e.g. DSPISTOL=.../pistol.ogg
+  --raw NAME=file [NAME=file ...]            add raw lumps, e.g. DEHACKED=sound_slots.deh
   --max-seconds N                            trim long tails (default 2.0)
   --out FILE.wad
 """
@@ -35,6 +36,7 @@ def ds_lump(samples):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--map", nargs="+", required=True)
+    ap.add_argument("--raw", nargs="*", default=[], help="NAME=file: add a file as a raw lump (e.g. DEHACKED)")
     ap.add_argument("--max-seconds", type=float, default=2.0)
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
@@ -45,6 +47,11 @@ def main():
         samples = ogg_to_u8(path, args.max_seconds)
         lumps.append((name.upper(), ds_lump(samples)))
         print(f"{name.upper()}: {len(samples)} samples (~{len(samples) / RATE:.2f}s) from {os.path.basename(path)}")
+    for item in args.raw:
+        name, path = item.split("=", 1)
+        with open(path, "rb") as f:
+            lumps.append((name.upper(), f.read()))
+        print(f"{name.upper()}: raw lump from {os.path.basename(path)}")
     # build_wad wraps in S_START/S_END, which is for sprites; sounds need no markers.
     entries = lumps
     data, directory, pos = b"", b"", 12

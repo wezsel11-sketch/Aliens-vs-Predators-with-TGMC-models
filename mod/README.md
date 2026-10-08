@@ -22,13 +22,16 @@ material.
 
 Extracts the TGMC sheets, composites the humanoids, and builds every PWAD into
 `<out-dir>/wads/`: the five actor sets (`xeno_troo`, `marine_player`,
-`som_trooper`, `som_heavy`, `spitter_chaingunner`), `ammo_pickups`,
-`weapon_pickups`, and the sound sets (`gun_sounds`, `voice_sounds`). The steps
-below are what it runs.
+`som_trooper`, `som_heavy`, `spitter_chaingunner`), `green_fireball`,
+`ammo_pickups`, `weapon_pickups`, and the sound sets (`gun_sounds`,
+`voice_sounds`). The steps below are what it runs.
 
-Actor mapping: player = TGMC marine; imp (`TROO`) = xeno Runner; zombieman
-(`POSS`) = SOM trooper; shotgun guy (`SPOS`) = SOM heavy; chaingunner (`CPOS`) =
-Spitter. The chaingunner only spawns in Freedoom 2 (Doom 2 monster).
+Actor mapping: player = TGMC marine; imp (`TROO`) = Spitter (its fireballs are
+recolored green, `green_fireball.wad`); zombieman (`POSS`) = SOM trooper with
+V-31 rifle; shotgun guy (`SPOS`) = SOM heavy with V-51 shotgun; chaingunner
+(`CPOS`) = Spitter. The SOM units wear a sleeved uniform, boots, gloves, black
+modular armor and a helmet. The chaingunner only spawns in Freedoom 2 (Doom 2
+monster).
 
 ## Pipeline
 
@@ -56,12 +59,18 @@ Spitter. The chaingunner only spawns in Freedoom 2 (Doom 2 monster).
    Prefixes used: `PLAY` (player), `TROO` (imp), `POSS` (zombieman),
    `SPOS` (shotgun guy), `CPOS` (chaingunner).
 
+   Recolor-only sprites (the fireball) use `build_recolor.py`.
+
    Attack frames reuse the walk poses (`--attack-frames EFG`). Death frames
    are single-rotation lumps (`X0`) from one image (`--death-frames ... --death-png`):
    TGMC's `Runner Dead` / `Spitter Dead`, or the standing composite rotated 90
    degrees for the humans. TGMC has no attack or death animations for these bodies.
 
-4. **Build sound PWADs.** Converts OGG to Doom DMX sound lumps (11025 Hz, 8-bit,
+4. **Build sound PWADs.** Doom monsters share sound slots, so `voice_sounds.wad`
+   also carries a `DEHACKED` lump (`sound_slots.deh`, added with `--raw`) that
+   points the chaingunner and imp at the alien sound slots (sight, active, death,
+   pain), and `DSDMPAIN` is replaced with a xeno sound, so Spitters do not use
+   the human voices. (The chaingunner's attack sound is hard-coded in the engine.) Converts OGG to Doom DMX sound lumps (11025 Hz, 8-bit,
    trimmed to `--max-seconds`):
 
        python3 build_sounds.py --map DSPISTOL=pistol.ogg DSSHOTGN=shotgun.ogg \

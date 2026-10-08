@@ -1,0 +1,16 @@
+Patch File for DeHackEd v3.0
+Doom version = 21
+Patch format = 6
+
+# The Spitters (the imp and chaingunner slots) must not use the human voice slots.
+# Sound numbers: 26 demon pain, 39 imp sight, 62 imp death, 76 imp active.
+# DSDMPAIN is replaced with a xeno sound in voice_sounds.wad.
+
+Thing 11 (Heavy weapon dude)
+Alert sound = 39
+Pain sound = 26
+Death sound = 62
+Action sound = 76
+
+Thing 12 (Imp)
+Pain sound = 26

@@ -40,6 +40,11 @@ material.
    Prefixes used: `PLAY` (player), `TROO` (imp), `POSS` (zombieman),
    `SPOS` (shotgun guy), `CPOS` (chaingunner).
 
+   Attack frames reuse the walk poses (`--attack-frames EFG`). Death frames
+   are single-rotation lumps (`X0`) from one image (`--death-frames ... --death-png`):
+   TGMC's `Runner Dead` / `Spitter Dead`, or the standing composite rotated 90
+   degrees for the humans. TGMC has no attack or death animations for these bodies.
+
 4. **Build sound PWADs.** Converts OGG to Doom DMX sound lumps (11025 Hz, 8-bit,
    trimmed to `--max-seconds`):
 

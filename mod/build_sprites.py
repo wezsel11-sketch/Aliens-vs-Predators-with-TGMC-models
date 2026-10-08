@@ -75,6 +75,9 @@ def main():
     ap.add_argument("--freedoom", required=True)
     ap.add_argument("--buildcfg", required=True)
     ap.add_argument("--playpal", required=True)
+    ap.add_argument("--attack-frames", default="", help="frames that use the same 4 directions (static attack pose)")
+    ap.add_argument("--death-frames", default="", help="single-rotation frames (lumps X0) that use --death-png")
+    ap.add_argument("--death-png", default="", help="image for the death frames")
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
 
@@ -83,24 +86,35 @@ def main():
     dirs = {f"d{i}": dl.crop_content(Image.open(p)) for i, p in enumerate([args.d0, args.d1, args.d2, args.d3])}
 
     lumps = []
-    for frame in args.frames:
+    for frame in args.frames + args.attack_frames:
         for rot in range(1, 9):
             key, mirror = ROT_SOURCE[rot]
             art = dirs[key]
             if mirror:
                 art = art.transpose(Image.FLIP_LEFT_RIGHT)
-            src_png = source_png_for(args.freedoom, args.prefix, frame, rot)
-            orig = Image.open(src_png).convert("RGBA")
-            (left, top), _ = anchor_for(table, args.prefix, frame, rot)
-            # Scale to the original lump's height, keeping aspect; anchor scaled proportionally.
-            scale = orig.height / art.height
-            nw, nh = max(1, round(art.width * scale)), max(1, round(art.height * scale))
-            art = art.resize((nw, nh), Image.NEAREST)
-            new_left = round(left * nw / orig.width)
-            new_top = round(top * nh / orig.height)
-            lumps.append((f"{args.prefix}{frame}{rot}", dl.encode_patch(nw, nh, dl.to_grid(art, pal), new_left, new_top)))
+            lumps.append(make_lump(args, table, pal, frame, rot, art))
+    if args.death_frames:
+        if not args.death_png:
+            raise SystemExit("--death-frames needs --death-png")
+        death_art = dl.crop_content(Image.open(args.death_png))
+        for frame in args.death_frames:
+            lumps.append(make_lump(args, table, pal, frame, 0, death_art))
     dl.build_wad(lumps, args.out)
-    print(f"wrote {args.out}: {len(lumps)} lumps ({args.prefix} frames {args.frames})")
+    print(f"wrote {args.out}: {len(lumps)} lumps ({args.prefix} walk {args.frames}, attack {args.attack_frames or '-'}, death {args.death_frames or '-'})")
+
+
+def make_lump(args, table, pal, frame, rot, art):
+    """Scale one direction image to its Freedoom lump's size and anchor, and return (lump name, patch bytes)."""
+    src_png = source_png_for(args.freedoom, args.prefix, frame, rot)
+    orig = Image.open(src_png).convert("RGBA")
+    (left, top), _ = anchor_for(table, args.prefix, frame, rot)
+    # Scale to the original lump's height, keeping aspect; anchor scaled proportionally.
+    scale = orig.height / art.height
+    nw, nh = max(1, round(art.width * scale)), max(1, round(art.height * scale))
+    art = art.resize((nw, nh), Image.NEAREST)
+    new_left = round(left * nw / orig.width)
+    new_top = round(top * nh / orig.height)
+    return (f"{args.prefix}{frame}{rot}", dl.encode_patch(nw, nh, dl.to_grid(art, pal), new_left, new_top))
 
 
 if __name__ == "__main__":

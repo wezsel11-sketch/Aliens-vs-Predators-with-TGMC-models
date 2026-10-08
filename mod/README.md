@@ -52,13 +52,17 @@ material.
 
 ## Testing
 
-Load the WADs in a Doom-compatible engine after the IWAD:
+Load the WADs in a PrBoom-based engine after the IWAD. Use `dsda-doom`
+(Debian/Ubuntu package `prboom-plus` provides the related engine). Do not use
+Chocolate Doom: it shows a blocking `R_ProjectSprite: invalid sprite frame 28 : 13`
+error for any PWAD that contains a sprite marker block (S_START/S_END), even an
+empty one. The same WADs run cleanly in `dsda-doom`.
 
-    chocolate-doom -iwad freedoom1.wad -file <mod>.wad -warp 1 1
+    dsda-doom -iwad freedoom1.wad -file <mod>.wad -warp 1 1
 
 `doomlib.py` holds the shared palette, patch encoding, and PWAD writer. It has
 no separate tests; the built WADs were checked by decoding the lumps and by
-loading them in Chocolate Doom.
+running them in `dsda-doom`.
 
 ## Licenses
 

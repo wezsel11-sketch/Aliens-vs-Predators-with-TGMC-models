@@ -77,7 +77,8 @@ def main():
     ap.add_argument("--playpal", required=True)
     ap.add_argument("--attack-frames", default="", help="frames that use the same 4 directions (static attack pose)")
     ap.add_argument("--death-frames", default="", help="single-rotation frames (lumps X0) that use --death-png")
-    ap.add_argument("--death-png", default="", help="image for the death frames")
+    ap.add_argument("--death-png", default="", help="image for the death frames (constant scale, same as the living sprite)")
+    ap.add_argument("--death-tilt-src", default="", help="standing image to tip over across the death frames (humans)")
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
 
@@ -94,11 +95,21 @@ def main():
                 art = art.transpose(Image.FLIP_LEFT_RIGHT)
             lumps.append(make_lump(args, table, pal, frame, rot, art))
     if args.death_frames:
-        if not args.death_png:
-            raise SystemExit("--death-frames needs --death-png")
-        death_art = dl.crop_content(Image.open(args.death_png))
-        for frame in args.death_frames:
-            lumps.append(make_lump(args, table, pal, frame, 0, death_art))
+        if not (args.death_png or args.death_tilt_src):
+            raise SystemExit("--death-frames needs --death-png or --death-tilt-src")
+        # Death frames keep the living sprite's pixel scale (Freedoom's death frames get shorter and
+        # shorter, so fitting each one to its original height would shrink the corpse to a speck).
+        orig_a1 = Image.open(source_png_for(args.freedoom, args.prefix, args.frames[0], 1))
+        living_scale = orig_a1.height / dirs["d0"].height
+        n = len(args.death_frames)
+        for i, frame in enumerate(args.death_frames):
+            if args.death_tilt_src:
+                # Tip the standing figure over: about 20 degrees on the first frame, flat on the last.
+                angle = 20 + (90 - 20) * i / max(1, n - 1)
+                art = dl.crop_content(Image.open(args.death_tilt_src).rotate(-angle, expand=True, resample=Image.NEAREST))
+            else:
+                art = dl.crop_content(Image.open(args.death_png))
+            lumps.append(make_fixed_scale_lump(args, pal, frame, art, living_scale))
     dl.build_wad(lumps, args.out)
     print(f"wrote {args.out}: {len(lumps)} lumps ({args.prefix} walk {args.frames}, attack {args.attack_frames or '-'}, death {args.death_frames or '-'})")
 
@@ -115,6 +126,13 @@ def make_lump(args, table, pal, frame, rot, art):
     new_left = round(left * nw / orig.width)
     new_top = round(top * nh / orig.height)
     return (f"{args.prefix}{frame}{rot}", dl.encode_patch(nw, nh, dl.to_grid(art, pal), new_left, new_top))
+
+
+def make_fixed_scale_lump(args, pal, frame, art, scale):
+    """Scale `art` by a fixed factor and anchor it at the bottom centre (feet on the floor)."""
+    nw, nh = max(1, round(art.width * scale)), max(1, round(art.height * scale))
+    art = art.resize((nw, nh), Image.NEAREST)
+    return (f"{args.prefix}{frame}0", dl.encode_patch(nw, nh, dl.to_grid(art, pal), nw // 2, nh))
 
 
 if __name__ == "__main__":

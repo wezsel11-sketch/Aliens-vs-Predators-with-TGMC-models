@@ -36,7 +36,7 @@ echo "== 1. extract TGMC sheets"
   icons/mob/clothing/uniforms/ert_uniforms.dmi icons/mob/clothing/feet.dmi icons/mob/clothing/hands.dmi \
   icons/mob/inhands/guns/rifles_right_1.dmi icons/mob/inhands/guns/shotguns_right_1.dmi)
 
-echo "== 2. composite humanoids (S, N, E, W per unit) and lying poses"
+echo "== 2. composite humanoids (S, N, E, W per unit)"
 # compose_units.py reads sheets from tgmc_sprites/ next to itself, so run it from a copy beside them.
 cp "$HERE/compose_units.py" "$HERE/doomlib.py" "$OUT/"
 $PY "$OUT/compose_units.py" "$OUT/marine_dirs" \
@@ -46,27 +46,25 @@ $PY "$OUT/compose_units.py" "$OUT/som_trooper_dirs" x:ert_uniforms:som_uniform x
   x:som_armor:som_medium_black x:som_helmets:som_helmet_black x:rifles_right_1:v31_w
 $PY "$OUT/compose_units.py" "$OUT/som_heavy_dirs" x:ert_uniforms:som_uniform x:feet:som x:hands:som \
   x:som_armor:som_heavy_black x:som_helmets:som_helmet_black x:shotguns_right_1:v51_w
-$PY - "$OUT" <<'EOF'
-import sys
-from PIL import Image
-out = sys.argv[1]
-for name in ("marine", "som_trooper", "som_heavy"):
-    Image.open(f"{out}/{name}_dirs/d0.png").convert("RGBA").rotate(-90, expand=True).save(f"{out}/lying_{name}.png")
-EOF
+# The same units without the held weapon: they drop it when they fall.
+$PY "$OUT/compose_units.py" "$OUT/som_trooper_dead_dirs" x:ert_uniforms:som_uniform x:feet:som x:hands:som \
+  x:som_armor:som_medium_black x:som_helmets:som_helmet_black
+$PY "$OUT/compose_units.py" "$OUT/som_heavy_dead_dirs" x:ert_uniforms:som_uniform x:feet:som x:hands:som \
+  x:som_armor:som_heavy_black x:som_helmets:som_helmet_black
 
 echo "== 3. actor sprite WADs"
-build() { # prefix walk-frames death-frames dirs-prefix death-png wad
+build() { # prefix death-frames death-flag death-src dirs-prefix wad
   $PY "$HERE/build_sprites.py" --prefix "$1" --frames ABCD --attack-frames EFG \
-    --d0 "$4"0.png --d1 "$4"1.png --d2 "$4"2.png --d3 "$4"3.png \
-    --death-frames "$2" --death-png "$3" \
-    --freedoom "$SPR" --buildcfg "$CFG" --playpal "$IWAD" --out "$WADS/$5"
+    --d0 "$5"0.png --d1 "$5"1.png --d2 "$5"2.png --d3 "$5"3.png \
+    --death-frames "$2" "$3" "$4" \
+    --freedoom "$SPR" --buildcfg "$CFG" --playpal "$IWAD" --out "$WADS/$6"
 }
 # The imp slot is a Spitter too: it shoots fireballs, which are recolored green below.
-build TROO IJKLMN "$TS/spitter/Spitter_Dead_f0_d0.png" "$TS/spitter/Spitter_Walking_f0_d" xeno_troo.wad
-build PLAY NOPQRSTUVW "$OUT/lying_marine.png" "$OUT/marine_dirs/d" marine_player.wad
-build POSS HIJKLMN "$OUT/lying_som_trooper.png" "$OUT/som_trooper_dirs/d" som_trooper.wad
-build SPOS HIJKLMN "$OUT/lying_som_heavy.png" "$OUT/som_heavy_dirs/d" som_heavy.wad
-build CPOS HIJKLMNOPQRST "$TS/spitter/Spitter_Dead_f0_d0.png" "$TS/spitter/Spitter_Walking_f0_d" spitter_chaingunner.wad
+build TROO IJKLMN --death-png "$TS/spitter/Spitter_Dead_f0_d0.png" "$TS/spitter/Spitter_Walking_f0_d" xeno_troo.wad
+build PLAY NOPQRSTUVW --death-tilt-src "$OUT/marine_dirs/d0.png" "$OUT/marine_dirs/d" marine_player.wad
+build POSS HIJKLMN --death-tilt-src "$OUT/som_trooper_dead_dirs/d0.png" "$OUT/som_trooper_dirs/d" som_trooper.wad
+build SPOS HIJKLMN --death-tilt-src "$OUT/som_heavy_dead_dirs/d0.png" "$OUT/som_heavy_dirs/d" som_heavy.wad
+build CPOS HIJKLMNOPQRST --death-png "$TS/spitter/Spitter_Dead_f0_d0.png" "$TS/spitter/Spitter_Walking_f0_d" spitter_chaingunner.wad
 
 $PY "$HERE/build_recolor.py" --freedoom "$SPR" --buildcfg "$CFG" --playpal "$IWAD" --prefix BAL1 \
   --out "$WADS/green_fireball.wad"

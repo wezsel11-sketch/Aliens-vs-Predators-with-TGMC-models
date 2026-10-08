@@ -61,10 +61,13 @@ monster).
 
    Recolor-only sprites (the fireball) use `build_recolor.py`.
 
-   Attack frames reuse the walk poses (`--attack-frames EFG`). Death frames
-   are single-rotation lumps (`X0`) from one image (`--death-frames ... --death-png`):
-   TGMC's `Runner Dead` / `Spitter Dead`, or the standing composite rotated 90
-   degrees for the humans. TGMC has no attack or death animations for these bodies.
+   Attack frames reuse the walk poses (`--attack-frames EFG`). Death frames are
+   single-rotation lumps (`X0`) built at the living sprite's pixel scale, so a
+   corpse is not shrunk to fit Freedoom's short death frames:
+   `--death-png` uses one image (TGMC's `Spitter Dead`), and `--death-tilt-src`
+   tips a standing figure over from about 20 degrees to flat across the frames
+   (the humans; the SOM units drop their weapon first). TGMC has no attack or
+   death animations for these bodies.
 
 4. **Build sound PWADs.** Doom monsters share sound slots, so `voice_sounds.wad`
    also carries a `DEHACKED` lump (`sound_slots.deh`, added with `--raw`) that
@@ -105,6 +108,13 @@ changes, so no node builder is needed):
 `doomlib.py` holds the shared palette, patch encoding, and PWAD writer. It has
 no separate tests; the built WADs were checked by decoding the lumps and by
 running them in `dsda-doom`.
+
+## Palette matching
+
+`doomlib.nearest_index` matches colors in CIE Lab with the lightness weight set to
+0.8, not by RGB distance. With RGB distance the Spitter's yellow-green highlights
+came out orange and brown, because Doom's palette has few yellow-greens. The
+palette is read from the IWAD's PLAYPAL lump (see Inputs).
 
 ## Licenses
 

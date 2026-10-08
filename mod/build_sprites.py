@@ -15,6 +15,7 @@ Each lump's size and anchor are scaled from the Freedoom lump it replaces.
 import argparse
 import glob
 import os
+import re
 import sys
 
 from PIL import Image
@@ -37,37 +38,47 @@ def load_buildcfg(path):
     return table
 
 
-def rotations_in(suffix):
-    """Rotation numbers named in a suffix such as '' (rot 1 only), '5', or '2A8' (rots 2 and 8)."""
-    return {int(c) for c in suffix if c.isdigit()}
+def frame_rotations(suffix):
+    """(frame letter, rotation) pairs named in a lump name suffix.
+
+    'A1' -> [(A,1)]; 'A2A8' -> [(A,2),(A,8)]; 'A1D1' -> [(A,1),(D,1)] (one picture shared by two frames);
+    'I0' -> [(I,0)].
+    """
+    return [(m.group(1).upper(), int(m.group(2))) for m in re.finditer(r"([A-Za-z\[\]\\^])(\d)", suffix)]
 
 
 def anchor_for(table, prefix, frame, rot):
     """Freedoom anchor for lump PREFIX+frame+rot, which may be listed under a combined key like TROOA2A8."""
     for key, val in table.items():
-        if not key.startswith(prefix + frame):
-            continue
-        suffix = key[len(prefix) + len(frame):]
-        if rot in rotations_in(suffix):
+        if key.startswith(prefix) and (frame, rot) in frame_rotations(key[len(prefix):]):
             return val, key
     raise KeyError(f"no buildcfg anchor for {prefix}{frame}{rot}")
 
 
 def source_png_for(freedoom_dir, prefix, frame, rot):
-    """The Freedoom PNG holding rotation `rot` for this frame (combined files like playa2a8.png)."""
-    base = f"{prefix}{frame}".lower()
-    for path in glob.glob(os.path.join(freedoom_dir, base + "*.png")):
-        stem = os.path.splitext(os.path.basename(path))[0]
-        suffix = stem[len(base):]
-        if (suffix == "" and rot == 1) or rot in rotations_in(suffix):
+    """The Freedoom PNG holding this frame and rotation (combined files like playa2a8.png, bspia1d1.png)."""
+    for path in sorted(glob.glob(os.path.join(freedoom_dir, prefix.lower() + "*.png"))):
+        stem = os.path.splitext(os.path.basename(path))[0][len(prefix):]
+        if (frame, rot) in frame_rotations(stem):
             return path
     raise KeyError(f"no Freedoom png for {prefix}{frame}{rot}")
+
+
+def detect_frames(freedoom_dir, prefix):
+    """Letters of the prefix's rotating frames (files like xxxxA1, xxxxA2A8) and single-rotation frames (xxxxA0)."""
+    rotating, single = set(), set()
+    for path in glob.glob(os.path.join(freedoom_dir, prefix.lower() + "*.png")):
+        stem = os.path.splitext(os.path.basename(path))[0][len(prefix):]
+        if not stem:
+            continue
+        (single if stem[1:] == "0" else rotating).add(stem[0].upper())
+    return "".join(sorted(rotating)), "".join(sorted(single))
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--prefix", required=True)
-    ap.add_argument("--frames", required=True)
+    ap.add_argument("--frames", default="", help="walk frames, e.g. ABCD (or use --auto-frames)")
     ap.add_argument("--d0", required=True)
     ap.add_argument("--d1", required=True)
     ap.add_argument("--d2", required=True)
@@ -79,8 +90,20 @@ def main():
     ap.add_argument("--death-frames", default="", help="single-rotation frames (lumps X0) that use --death-png")
     ap.add_argument("--death-png", default="", help="image for the death frames (constant scale, same as the living sprite)")
     ap.add_argument("--death-tilt-src", default="", help="standing image to tip over across the death frames (humans)")
+    ap.add_argument("--auto-frames", action="store_true",
+                    help="use every rotating frame of the prefix as walk/attack, every single-rotation frame as death")
+    ap.add_argument("--like", default="", help="take frame layout, sizes and anchors from this Freedoom prefix "
+                    "(for new sprite names such as a SOM variant of POSS)")
+    ap.add_argument("--death-tilt-count", type=int, default=0,
+                    help="tip the figure over across this many death frames; the rest stay flat (default: all)")
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
+    args.ref = args.like or args.prefix  # prefix used to find Freedoom's source sprites
+    if args.auto_frames:
+        args.frames, args.death_frames = detect_frames(args.freedoom, args.ref)
+        args.attack_frames = ""
+    if not args.frames:
+        raise SystemExit("need --frames or --auto-frames")
 
     pal = dl.load_palette(args.playpal)
     table = load_buildcfg(args.buildcfg)
@@ -99,13 +122,14 @@ def main():
             raise SystemExit("--death-frames needs --death-png or --death-tilt-src")
         # Death frames keep the living sprite's pixel scale (Freedoom's death frames get shorter and
         # shorter, so fitting each one to its original height would shrink the corpse to a speck).
-        orig_a1 = Image.open(source_png_for(args.freedoom, args.prefix, args.frames[0], 1))
+        orig_a1 = Image.open(source_png_for(args.freedoom, args.ref, args.frames[0], 1))
         living_scale = orig_a1.height / dirs["d0"].height
         n = len(args.death_frames)
         for i, frame in enumerate(args.death_frames):
             if args.death_tilt_src:
                 # Tip the standing figure over: about 20 degrees on the first frame, flat on the last.
-                angle = 20 + (90 - 20) * i / max(1, n - 1)
+                tilt_n = args.death_tilt_count or n
+                angle = 20 + (90 - 20) * min(i, tilt_n - 1) / max(1, tilt_n - 1)
                 art = dl.crop_content(Image.open(args.death_tilt_src).rotate(-angle, expand=True, resample=Image.NEAREST))
             else:
                 art = dl.crop_content(Image.open(args.death_png))
@@ -116,9 +140,14 @@ def main():
 
 def make_lump(args, table, pal, frame, rot, art):
     """Scale one direction image to its Freedoom lump's size and anchor, and return (lump name, patch bytes)."""
-    src_png = source_png_for(args.freedoom, args.prefix, frame, rot)
+    src_png = source_png_for(args.freedoom, args.ref, frame, rot)
     orig = Image.open(src_png).convert("RGBA")
-    (left, top), _ = anchor_for(table, args.prefix, frame, rot)
+    try:
+        (left, top), _ = anchor_for(table, args.ref, frame, rot)
+    except KeyError:
+        left, top = dl.read_grab(src_png)  # offsets stored in the PNG itself
+        if (left, top) == (0, 0):
+            left, top = orig.width // 2, orig.height  # last resort: bottom centre
     # Scale to the original lump's height, keeping aspect; anchor scaled proportionally.
     scale = orig.height / art.height
     nw, nh = max(1, round(art.width * scale)), max(1, round(art.height * scale))

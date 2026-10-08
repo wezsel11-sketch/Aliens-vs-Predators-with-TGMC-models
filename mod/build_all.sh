@@ -34,7 +34,8 @@ echo "== 1. extract TGMC sheets"
   icons/obj/items/guns/machineguns64.dmi icons/obj/items/guns/special64.dmi \
   icons/obj/items/guns/plasma64.dmi icons/obj/items/weapons/twohanded.dmi \
   icons/mob/clothing/uniforms/ert_uniforms.dmi icons/mob/clothing/feet.dmi icons/mob/clothing/hands.dmi \
-  icons/mob/inhands/guns/rifles_right_1.dmi icons/mob/inhands/guns/shotguns_right_1.dmi)
+  icons/mob/inhands/guns/rifles_right_1.dmi icons/mob/inhands/guns/shotguns_right_1.dmi \
+  icons/mob/inhands/guns/machineguns_right_64.dmi icons/obj/items/guns/pistols.dmi)
 
 echo "== 2. composite humanoids (S, N, E, W per unit)"
 # compose_units.py reads sheets from tgmc_sprites/ next to itself, so run it from a copy beside them.
@@ -73,6 +74,14 @@ echo "== 4. pickups"
 $PY "$HERE/build_ammo_pwad.py" --sprites "$TS" --freedoom "$SPR" --playpal "$IWAD" --out "$WADS/ammo_pickups.wad"
 $PY "$HERE/build_weapon_pickups.py" --sprites "$TS" --freedoom "$SPR" --buildcfg "$CFG" \
   --playpal "$IWAD" --out "$WADS/weapon_pickups.wad"
+
+echo "== 4b. first-person weapons (voxel guns) and the rest of the alien enemies"
+$PY "$HERE/build_weapon_view.py" --sprites "$TS" --freedoom "$SPR" --buildcfg "$CFG" --playpal "$IWAD" \
+  --out "$WADS/weapon_view.wad"
+bash "$HERE/build_aliens.sh" "$TGMC" "$FD" "$IWAD" "$OUT"
+
+echo "== 4c. five SOM looks per slot with a random spawner (GZDoom/UZDoom only)"
+$PY "$HERE/build_som_variants.py" --out "$OUT" --freedoom "$FD" --iwad "$IWAD"
 
 echo "== 5. sounds"
 V="$TGMC/sound/voice"; G="$TGMC/sound/weapons/guns/fire"

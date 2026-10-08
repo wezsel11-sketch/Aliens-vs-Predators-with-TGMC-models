@@ -23,7 +23,7 @@ material.
 Extracts the TGMC sheets, composites the humanoids, and builds every PWAD into
 `<out-dir>/wads/`: the five actor sets (`xeno_troo`, `marine_player`,
 `som_trooper`, `som_heavy`, `spitter_chaingunner`), `green_fireball`,
-`ammo_pickups`, `weapon_pickups`, and the sound sets (`gun_sounds`,
+`ammo_pickups`, `weapon_pickups`, `weapon_view`, the eleven `alien_*` enemy sets, `som_variants`, and the sound sets (`gun_sounds`,
 `voice_sounds`). The steps below are what it runs.
 
 Actor mapping: player = TGMC marine; imp (`TROO`) = Spitter (its fireballs are
@@ -108,6 +108,25 @@ changes, so no node builder is needed):
 `doomlib.py` holds the shared palette, patch encoding, and PWAD writer. It has
 no separate tests; the built WADs were checked by decoding the lumps and by
 running them in `dsda-doom`.
+
+## More enemies, SOM variants, first-person weapons
+
+- **Alien enemies** (`build_aliens.sh`): the rest of Doom's monsters become TGMC xeno castes, one WAD each:
+  Pinky/Spectre = Runner, Lost Soul = Larva, Cacodemon = Shrike, Baron = Crusher,
+  Hell Knight = Warrior, Revenant = Hunter, Mancubus = Boiler, Arachnotron = Widow,
+  Pain Elemental = Carrier, Cyberdemon = Dragon, Spiderdemon = Queen. Every rotating frame
+  (walk, attack, pain) uses the caste's 4-direction walk art, and the single-rotation frames
+  (death, explosion) use its "Dead" image, via `build_sprites.py --auto-frames`. Archvile is not replaced
+  (its frames hold fire effects). Projectiles other than the imp's fireball keep Freedoom's art.
+- **SOM variants** (`build_som_variants.py`, **GZDoom/UZDoom only**): five looks (light, medium, heavy,
+  leader, officer) for both the zombieman and shotgun guy slots, each with its own armor and weapon.
+  The script writes sprite sets `SOMA`..`SOME` and `SOSA`..`SOSE`, one DECORATE actor per look, and a
+  `RandomSpawner` that replaces `ZombieMan` / `ShotgunGuy`, so each spawn picks a look at random. Output:
+  `wads/som_variants.wad`. Load it instead of `som_trooper.wad` / `som_heavy.wad`.
+- **First-person weapons** (`build_weapon_view.py`, `voxel_gun.py`): TGMC only has side-view gun art, so each
+  icon is extruded into a voxel model, rendered from a side camera with two forearms, mirrored, tipped 18
+  degrees, and placed at the bottom centre of the screen like classic Doom. Muzzle flashes and recoil
+  animation are not replaced.
 
 ## Palette matching
 

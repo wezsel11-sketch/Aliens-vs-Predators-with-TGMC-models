@@ -10,8 +10,25 @@ from PIL import Image
 
 
 def load_palette(path):
+    """Palette 0 as 256 (r, g, b) tuples.
+
+    `path` is either a raw PLAYPAL lump file or an IWAD/PWAD, in which case the
+    PLAYPAL lump is read from it. Do not point this at Freedoom's
+    lumps/playpal/playpal: that is generator output, not the lump the engine uses.
+    """
     with open(path, "rb") as f:
-        data = f.read(768)
+        data = f.read()
+    if data[:4] in (b"IWAD", b"PWAD"):
+        _, numlumps, diroff = struct.unpack("<4sII", data[:12])
+        for i in range(numlumps):
+            pos, size, name = struct.unpack("<II8s", data[diroff + 16 * i:diroff + 16 * i + 16])
+            if name.rstrip(b"\0") == b"PLAYPAL":
+                data = data[pos:pos + size]
+                break
+        else:
+            raise ValueError(f"no PLAYPAL lump in {path}")
+    if len(data) < 768:
+        raise ValueError(f"{path} is too small to be a PLAYPAL ({len(data)} bytes)")
     return [tuple(data[i:i + 3]) for i in range(0, 768, 3)]
 
 

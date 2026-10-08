@@ -11,7 +11,9 @@ material.
   (the `.dmi` files under `icons/`, the OGG files under `sound/`)
 - A Freedoom checkout: https://github.com/freedoom/freedoom
   (`sprites/`, `buildcfg.txt`, `lumps/playpal/playpal`)
-- Freedoom IWADs to play with: `freedoom1.wad`, `freedoom2.wad`
+- Freedoom IWADs to play with: `freedoom1.wad`, `freedoom2.wad`. Pass an IWAD as
+  `--playpal`; the palette is read from its PLAYPAL lump. Do not use Freedoom's
+  `lumps/playpal/playpal` file, which is not the real lump and gives wrong colors.
 - Python 3 with Pillow, and ffmpeg (for `build_sounds.py`)
 
 ## Pipeline
@@ -35,7 +37,7 @@ material.
        python3 build_sprites.py --prefix POSS --frames ABCD \
            --d0 S.png --d1 N.png --d2 E.png --d3 W.png \
            --freedoom <freedoom>/sprites --buildcfg <freedoom>/buildcfg.txt \
-           --playpal <freedoom>/lumps/playpal/playpal --out som_trooper.wad
+           --playpal /usr/share/games/doom/freedoom1.wad --out som_trooper.wad
 
    Prefixes used: `PLAY` (player), `TROO` (imp), `POSS` (zombieman),
    `SPOS` (shotgun guy), `CPOS` (chaingunner).

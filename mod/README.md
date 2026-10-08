@@ -14,7 +14,7 @@ material.
 - Freedoom IWADs to play with: `freedoom1.wad`, `freedoom2.wad`. Pass an IWAD as
   `--playpal`; the palette is read from its PLAYPAL lump. Do not use Freedoom's
   `lumps/playpal/playpal` file, which is not the real lump and gives wrong colors.
-- Python 3 with Pillow, and ffmpeg (for `build_sounds.py`)
+- Python 3 with Pillow and numpy, and ffmpeg (for `build_sounds.py`)
 
 ## One-step build
 
@@ -123,10 +123,21 @@ running them in `dsda-doom`.
   The script writes sprite sets `SOMA`..`SOME` and `SOSA`..`SOSE`, one DECORATE actor per look, and a
   `RandomSpawner` that replaces `ZombieMan` / `ShotgunGuy`, so each spawn picks a look at random. Output:
   `wads/som_variants.wad`. Load it instead of `som_trooper.wad` / `som_heavy.wad`.
-- **First-person weapons** (`build_weapon_view.py`, `voxel_gun.py`): TGMC only has side-view gun art, so each
-  icon is extruded into a voxel model, rendered from a side camera with two forearms, mirrored, tipped 18
-  degrees, and placed at the bottom centre of the screen like classic Doom. Muzzle flashes and recoil
-  animation are not replaced.
+- **First-person weapons** (`build_weapon_view.py`, `gun_models.py`): each weapon is a small hand-built 3D model
+  (rounded boxes, tubes and capsule forearms with gloves), ray-marched as a signed distance field from behind and
+  above so the gun points straight ahead at the bottom centre of the screen, like classic Doom. The TGMC side-view
+  icon is projected onto the model as its texture (colours, markings, accents), but from behind most of a gun's side is
+  not visible, so these are TGMC-coloured guns and not TGMC-looking guns. Every Freedoom weapon frame gets the rest pose
+  kicked back and up by a per-frame recoil amount (`RECOIL`), and the muzzle flashes (PISF, SHTF, CHGF, MISF, PLSF,
+  BFGF) are drawn procedurally: yellow for guns, a fireball for rockets, cyan for plasma, green for the BFG.
+  Needs numpy. The SH-35 shotgun (`t35`) and MG-60 machine gun (`t60`) are the first-person shotgun and chaingun.
+- **Alien attacks** (`build_alien_attacks.py`, **GZDoom/UZDoom only**): the Spitter chaingunner, Queen (spiderdemon),
+  Widow (arachnotron) and Dragon (cyberdemon) fire green acid instead of bullets, plasma and rockets, via DECORATE
+  replacements; the cacodemon, mancubus and revenant projectiles are recoloured green.
+- **SOM energy weapons** (`build_som_variants.py`): each SOM look fires with its own TGMC laser or plasma sound
+  through a custom bullet attack (`A_CustomBulletAttack` + `SNDINFO`), so the player's guns keep the normal sounds.
+- **Sizes**: `build_sprites.py --scale` sizes the living sprite (the Runner is 0.85) and `--death-scale` the death
+  frames (default 0.75 of the living sprite).
 
 ## Palette matching
 

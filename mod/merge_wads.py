@@ -24,7 +24,7 @@ def main():
             if name in ("S_START", "S_END"):
                 continue
             # sprite patches have a 4-letter prefix + frame/rotation; everything else (DECORATE, DS*...) goes outside
-            (others if name.startswith("DS") or name in ("DECORATE", "DEHACKED", "ZSCRIPT", "MAPINFO", "ANIMDEFS") else sprites).append((name, body))
+            (others if name.startswith("DS") or name in ("DECORATE", "DEHACKED", "ZSCRIPT", "MAPINFO", "ANIMDEFS", "SNDINFO") else sprites).append((name, body))
     entries = [("S_START", b"")] + sprites + [("S_END", b"")] + others
     data, directory, pos = b"", b"", 12
     for name, body in entries:

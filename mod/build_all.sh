@@ -76,12 +76,15 @@ $PY "$HERE/build_weapon_pickups.py" --sprites "$TS" --freedoom "$SPR" --buildcfg
   --playpal "$IWAD" --out "$WADS/weapon_pickups.wad"
 
 echo "== 4b. first-person weapons (voxel guns) and the rest of the alien enemies"
-$PY "$HERE/build_weapon_view.py" --sprites "$TS" --freedoom "$SPR" --buildcfg "$CFG" --playpal "$IWAD" \
+PYTHONPATH="$HERE" python3 -s "$HERE/build_weapon_view.py" --sprites "$TS" --freedoom "$SPR" --buildcfg "$CFG" --playpal "$IWAD" \
   --out "$WADS/weapon_view.wad"
 bash "$HERE/build_aliens.sh" "$TGMC" "$FD" "$IWAD" "$OUT"
 
 echo "== 4c. five SOM looks per slot with a random spawner (GZDoom/UZDoom only)"
-$PY "$HERE/build_som_variants.py" --out "$OUT" --freedoom "$FD" --iwad "$IWAD"
+$PY "$HERE/build_som_variants.py" --out "$OUT" --freedoom "$FD" --iwad "$IWAD" --tgmc "$TGMC"
+
+echo "== 4d. alien acid attacks and recolored projectiles (GZDoom/UZDoom only)"
+$PY "$HERE/build_alien_attacks.py" --out "$OUT" --freedoom "$FD" --iwad "$IWAD"
 
 echo "== 5. sounds"
 V="$TGMC/sound/voice"; G="$TGMC/sound/weapons/guns/fire"

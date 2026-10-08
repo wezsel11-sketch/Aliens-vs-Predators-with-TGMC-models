@@ -96,6 +96,10 @@ def main():
                     "(for new sprite names such as a SOM variant of POSS)")
     ap.add_argument("--death-tilt-count", type=int, default=0,
                     help="tip the figure over across this many death frames; the rest stay flat (default: all)")
+    ap.add_argument("--scale", type=float, default=1.0,
+                    help="size of the living sprite relative to the Freedoom sprite it replaces (e.g. 0.85)")
+    ap.add_argument("--death-scale", type=float, default=0.75,
+                    help="size of death frames relative to the living sprite (default 0.75)")
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
     args.ref = args.like or args.prefix  # prefix used to find Freedoom's source sprites
@@ -123,7 +127,7 @@ def main():
         # Death frames keep the living sprite's pixel scale (Freedoom's death frames get shorter and
         # shorter, so fitting each one to its original height would shrink the corpse to a speck).
         orig_a1 = Image.open(source_png_for(args.freedoom, args.ref, args.frames[0], 1))
-        living_scale = orig_a1.height / dirs["d0"].height
+        living_scale = orig_a1.height / dirs["d0"].height * args.scale
         n = len(args.death_frames)
         for i, frame in enumerate(args.death_frames):
             if args.death_tilt_src:
@@ -133,7 +137,7 @@ def main():
                 art = dl.crop_content(Image.open(args.death_tilt_src).rotate(-angle, expand=True, resample=Image.NEAREST))
             else:
                 art = dl.crop_content(Image.open(args.death_png))
-            lumps.append(make_fixed_scale_lump(args, pal, frame, art, living_scale))
+            lumps.append(make_fixed_scale_lump(args, pal, frame, art, living_scale * args.death_scale))
     dl.build_wad(lumps, args.out)
     print(f"wrote {args.out}: {len(lumps)} lumps ({args.prefix} walk {args.frames}, attack {args.attack_frames or '-'}, death {args.death_frames or '-'})")
 
@@ -149,7 +153,7 @@ def make_lump(args, table, pal, frame, rot, art):
         if (left, top) == (0, 0):
             left, top = orig.width // 2, orig.height  # last resort: bottom centre
     # Scale to the original lump's height, keeping aspect; anchor scaled proportionally.
-    scale = orig.height / art.height
+    scale = orig.height / art.height * args.scale
     nw, nh = max(1, round(art.width * scale)), max(1, round(art.height * scale))
     art = art.resize((nw, nh), Image.NEAREST)
     new_left = round(left * nw / orig.width)

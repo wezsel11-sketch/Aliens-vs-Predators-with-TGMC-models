@@ -17,19 +17,19 @@ import struct
 import subprocess
 import tempfile
 
-# lump name -> (path in the TGMC checkout, target loudness in LUFS)
+# lump name -> (path in the TGMC checkout, target loudness in LUFS); kept well below the sound effects
 TRACKS = {
-    "TGMCLOBY": ("config/lobby_themes/DawsonChristian.ogg", -16),
-    "TGMCELEV": ("sound/music/elevator/robocop-short.ogg", -18),
-    "TGMCSPAC": ("sound/ambience/ambispace.ogg", -20),
-    "TGMCCAVE": ("sound/ambience/ambicave2.ogg", -20),
-    "TGMCMINE": ("sound/ambience/ambimine.ogg", -20),
-    "TGMCMOON": ("sound/ambience/ambimo1.ogg", -20),
-    "TGMCLAVA": ("sound/ambience/ambilava1.ogg", -20),
-    "TGMCSNOW": ("sound/ambience/ambi_snow.ogg", -20),
-    "TGMCSHIP": ("sound/ambience/shipambience.ogg", -20),
-    "TGMCDERE": ("sound/effects/urban/indoors/derelict_ambience.ogg", -20),
-    "TGMCURBN": ("sound/effects/urban/indoors/urban_interior.ogg", -20),
+    "TGMCLOBY": ("config/lobby_themes/DawsonChristian.ogg", -22),
+    "TGMCELEV": ("sound/music/elevator/robocop-short.ogg", -24),
+    "TGMCSPAC": ("sound/ambience/ambispace.ogg", -26),
+    "TGMCCAVE": ("sound/ambience/ambicave2.ogg", -26),
+    "TGMCMINE": ("sound/ambience/ambimine.ogg", -26),
+    "TGMCMOON": ("sound/ambience/ambimo1.ogg", -26),
+    "TGMCLAVA": ("sound/ambience/ambilava1.ogg", -26),
+    "TGMCSNOW": ("sound/ambience/ambi_snow.ogg", -26),
+    "TGMCSHIP": ("sound/ambience/shipambience.ogg", -26),
+    "TGMCDERE": ("sound/effects/urban/indoors/derelict_ambience.ogg", -26),
+    "TGMCURBN": ("sound/effects/urban/indoors/urban_interior.ogg", -26),
 }
 LEVEL_ROTATION = ["TGMCLOBY", "TGMCSPAC", "TGMCCAVE", "TGMCSHIP", "TGMCMINE", "TGMCDERE", "TGMCLAVA",
                   "TGMCMOON", "TGMCURBN", "TGMCSNOW"]

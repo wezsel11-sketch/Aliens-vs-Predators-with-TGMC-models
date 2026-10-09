@@ -45,7 +45,7 @@ echo "== 1. extract TGMC sheets"
   icons/obj/items/pda.dmi icons/obj/clothing/suits/suits.dmi icons/obj/items/card.dmi \
   icons/obj/items/ammo/box.dmi icons/obj/items/ammo/rocket.dmi icons/obj/items/ammo/energy.dmi \
   icons/obj/items/ammo/powerpack.dmi icons/Xeno/resin_pod.dmi icons/Xeno/Effects.dmi \
-  icons/Xeno/structures.dmi icons/Xeno/weeds.dmi)
+  icons/Xeno/structures.dmi icons/Xeno/weeds.dmi icons/obj/objects.dmi icons/effects/96x96.dmi)
 
 echo "== 2. composite humanoids (S, N, E, W per unit)"
 # compose_units.py reads sheets from tgmc_sprites/ next to itself, so run it from a copy beside them.
@@ -88,6 +88,10 @@ $PY "$HERE/build_weapon_pickups.py" --sprites "$TS" --freedoom "$SPR" --buildcfg
 $PY "$HERE/build_item_pickups.py" --sprites "$TS/obj_items" --freedoom "$SPR" --buildcfg "$CFG" \
   --playpal "$IWAD" --out "$WADS/item_pickups.wad"
 
+# Explosive barrels become the SS13/TGMC fuel tank, exploding with TGMC's explosion animation.
+$PY "$HERE/build_fuel_tank.py" --sprites "$TS/obj_items" --freedoom "$SPR" --buildcfg "$CFG" \
+  --playpal "$IWAD" --out "$WADS/fuel_tank.wad"
+
 echo "== 4b. optional voxel first-person weapons, and the rest of the alien enemies"
 # Not loaded by default: Freedoom's own first-person guns are kept. Load weapon_view_voxel.wad to swap them.
 PYTHONPATH="$HERE" python3 -s "$HERE/build_weapon_view.py" --sprites "$TS" --freedoom "$SPR" --buildcfg "$CFG" --playpal "$IWAD" \
@@ -128,12 +132,15 @@ $PY "$HERE/build_sounds.py" --max-seconds 1.0 --peak 110 --out "$WADS/extra_soun
   DSHYPO="$TGMC/sound/items/hypospray.ogg" DSARMPK="$TGMC/sound/items/armorlock.ogg" DSAMMPK="$I/m41a_reload.ogg" \
   DSKEYPK="$M/twobeep.ogg" DSGETPOW="$M/beepalert.ogg" \
   --raw DECORATE="$HERE/marine_steps.decorate" SNDINFO="$HERE/extra_sounds.sndinfo" MAPINFO="$HERE/marine_steps.mapinfo"
-# The rocket launcher, plasma rifle, BFG, super shotgun, chainsaw (power axe) and fist.
-W="$TGMC/sound/weapons"
+# The rocket launcher, plasma rifle, BFG, super shotgun, chainsaw (power axe) and fist; in GZDoom the chaingun
+# gets the MG-60's sound, and barrel and rocket explosions use TGMC's explosions.
+W="$TGMC/sound/weapons"; X="$TGMC/sound/effects/explosion"
 $PY "$HERE/build_sounds.py" --max-seconds 1.5 --peak 115 --out "$WADS/heavy_gun_sounds.wad" --map \
   DSRLAUNC="$G/rpg_1.ogg" DSPLASMA="$G/plasma_fire_fast.ogg" DSBFG="$G/tank_bfg.ogg" DSDSHTGN="$G/shotgun_heavy.ogg" \
   DSSAWUP="$W/chainsawstart.ogg" DSSAWIDL="$W/chainsaw_simpson.ogg" DSSAWFUL="$W/chainsawhit.ogg" \
-  DSSAWHIT="$W/chainsawhit.ogg" DSPUNCH="$W/punch1.ogg"
+  DSSAWHIT="$W/chainsawhit.ogg" DSPUNCH="$W/punch1.ogg" DSMG60="$G/tgmc/kinetic/gun_mg60.ogg@0.6" \
+  DSBAREXP="$X/medium1.ogg@2.5" DSEXPL2="$X/medium2.ogg@2.5" DSEXPL3="$X/medium3.ogg@2.5" DSEXPL4="$X/medium4.ogg@2.5" \
+  --raw SNDINFO="$HERE/heavy_gun_sounds.sndinfo"
 # Every other monster's voice: each caste gets TGMC roars, hisses and death screams.
 A="$V/alien"; E="$TGMC/sound/effects/alien"
 $PY "$HERE/build_sounds.py" --max-seconds 2.0 --peak 115 --out "$WADS/alien_sounds.wad" --map \

@@ -1,0 +1,9 @@
+// GZDoom/UZDoom: the chaingun gets the MG-60's own sound (other engines share DSPISTOL with the pistol),
+// and barrel and rocket explosions pick one of TGMC's medium explosions at random.
+weapons/chngun DSMG60
+tgmc/explosion1 DSBAREXP
+tgmc/explosion2 DSEXPL2
+tgmc/explosion3 DSEXPL3
+tgmc/explosion4 DSEXPL4
+$random world/barrelx { tgmc/explosion1 tgmc/explosion2 tgmc/explosion3 tgmc/explosion4 }
+$random weapons/rocklx { tgmc/explosion1 tgmc/explosion2 tgmc/explosion3 tgmc/explosion4 }

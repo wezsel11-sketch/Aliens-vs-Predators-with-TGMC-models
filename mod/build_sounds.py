@@ -3,7 +3,8 @@
 Doom's DMX sound lump: u16 format (3), u16 rate (11025), u32 sample count, then
 8-bit unsigned mono PCM with 16 bytes of padding each side (count includes padding).
 
-  --map NAME=ogg_path [NAME=ogg_path ...]   e.g. DSPISTOL=.../pistol.ogg
+  --map NAME=ogg_path [NAME=ogg_path ...]   e.g. DSPISTOL=.../pistol.ogg; NAME=ogg_path@3.0 overrides
+                                            --max-seconds for that sound
   --raw NAME=file [NAME=file ...]            add raw lumps, e.g. DEHACKED=sound_slots.deh
   --max-seconds N                            trim long tails (default 2.0)
   --peak N                                   scale each sound so its loudest sample is N of 127 (quiet TGMC files)
@@ -56,10 +57,14 @@ def main():
     lumps = []
     for item in args.map:
         name, path = item.split("=", 1)
+        seconds = args.max_seconds
+        if "@" in path:
+            path, seconds = path.rsplit("@", 1)
+            seconds = float(seconds)
         if args.peak:
-            samples = ogg_to_u8_normalized(path, args.max_seconds, args.peak)
+            samples = ogg_to_u8_normalized(path, seconds, args.peak)
         else:
-            samples = ogg_to_u8(path, args.max_seconds)
+            samples = ogg_to_u8(path, seconds)
         lumps.append((name.upper(), ds_lump(samples)))
         print(f"{name.upper()}: {len(samples)} samples (~{len(samples) / RATE:.2f}s) from {os.path.basename(path)}")
     for item in args.raw:

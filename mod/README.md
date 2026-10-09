@@ -24,7 +24,7 @@ material.
 Extracts the TGMC sheets, composites the humanoids, and builds every PWAD into
 `<out-dir>/wads/`: the five actor sets (`xeno_troo`, `marine_player`,
 `som_trooper`, `som_heavy`, `spitter_chaingunner`), `green_fireball`,
-`ammo_pickups`, `weapon_pickups`, `item_pickups`, the twelve `alien_*` enemy sets, `som_variants`, the sound sets (`gun_sounds`,
+`ammo_pickups`, `weapon_pickups`, `item_pickups`, `fuel_tank`, the twelve `alien_*` enemy sets, `som_variants`, the sound sets (`gun_sounds`,
 `heavy_gun_sounds`, `voice_sounds`, `alien_sounds`, `extra_sounds`, `marine_voice`, `hive_ambience`), `music`,
 `presentation`, `hive_textures`, and the optional `weapon_view_voxel`. The steps below are what it runs.
 
@@ -152,7 +152,10 @@ running them in `dsda-doom`.
   teleport, and the marine's pain, death and gib screams; in GZDoom, SNDINFO splits Doom's single pickup sound
   into a hypospray for health, armor clicks for armor, a magazine for ammo and a beep for keys.
 - **Heavy guns and alien voices**: `heavy_gun_sounds.wad` gives the rocket launcher, plasma rifle, BFG, super
-  shotgun, chainsaw (the power axe pickup) and fist TGMC sounds. `alien_sounds.wad` gives every other monster
+  shotgun, chainsaw (the power axe pickup) and fist TGMC sounds. Its SNDINFO gives the chaingun the MG-60's own fire
+  sound (`gun_mg60.ogg`; other engines share Doom's pistol sound for both) and makes barrel and rocket explosions
+  pick one of TGMC's medium explosions (`DSBAREXP` itself is one of them, for other engines). `build_sounds.py`
+  accepts `NAME=file@seconds` to give one sound its own length. `alien_sounds.wad` gives every other monster
   caste-fitting TGMC roars, hisses, drools, claw and bite sounds and death screams (the Queen's screech, the King's
   roar for the Dragon, heavy alien footsteps for the Dragon and Queen), and the facehugger its leap and death sound.
 - **Pickups and decorations** (`build_item_pickups.py`): besides armor and health, berserk = TGMC "bezerk" kit,
@@ -172,11 +175,15 @@ running them in `dsda-doom`.
 - **Sizes**: `build_sprites.py --scale` sizes the living sprite (the Runner is 0.85) and `--death-scale` the death
   frames (default 0.75 of the living sprite).
 
+- **Fuel tanks** (`build_fuel_tank.py`, `fuel_tank.wad`): the explosive barrel (`BAR1`, `BEXPA/B`) is the SS13/TGMC
+  red fuel tank (`objects.dmi` `weldtank`), glowing hot just before it blows, and the blast (`BEXPC-E`) is TGMC's
+  explosion animation (`96x96.dmi` `explosion`), centred on the tank.
 - **Music** (`build_music.py`, `music.wad`, **GZDoom/UZDoom only**): TGMC's repository has one real song, the
   lobby theme (`config/lobby_themes/DawsonChristian.ogg`), plus the RoboCop elevator tune and the round ambience
   loops. The lobby theme plays on the title, finale and text screens, the elevator tune on the intermission, and
   the levels rotate through the lobby theme and nine ambience loops. Each track is stored once (loudness-normalized
-  with ffmpeg `loudnorm`, re-encoded as Vorbis), and an `SNDINFO` lump maps every Doom 1 and Doom 2 music name to a
+  with ffmpeg `loudnorm` to -22 LUFS for the lobby theme and -26 for the ambience, well under the sound effects,
+  re-encoded as Vorbis), and an `SNDINFO` lump maps every Doom 1 and Doom 2 music name to a
   track with `$musicalias`.
 
 - **Title, menus and texts** (`build_presentation.py`, `presentation.wad`, **GZDoom/UZDoom**): TGMC lobby art

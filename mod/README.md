@@ -23,8 +23,8 @@ material.
 Extracts the TGMC sheets, composites the humanoids, and builds every PWAD into
 `<out-dir>/wads/`: the five actor sets (`xeno_troo`, `marine_player`,
 `som_trooper`, `som_heavy`, `spitter_chaingunner`), `green_fireball`,
-`ammo_pickups`, `weapon_pickups`, the eleven `alien_*` enemy sets, `som_variants`, the sound sets (`gun_sounds`,
-`voice_sounds`, `extra_sounds`), and the optional `weapon_view_voxel`. The steps below are what it runs.
+`ammo_pickups`, `weapon_pickups`, `item_pickups`, the eleven `alien_*` enemy sets, `som_variants`, the sound sets (`gun_sounds`,
+`voice_sounds`, `extra_sounds`), `music`, and the optional `weapon_view_voxel`. The steps below are what it runs.
 
 Actor mapping: player = TGMC marine; imp (`TROO`) = Spitter (its fireballs are
 recolored green, `green_fireball.wad`); zombieman (`POSS`) = SOM trooper with
@@ -83,6 +83,12 @@ monster).
    and AMMO; `build_weapon_pickups.py` replaces SHOT, SGN2, MGUN, LAUN, PLAS, BFUG,
    and CSAW with TGMC gun art (CSAW uses the powered axe; TGMC has no chainsaw).
    Both scale from the Freedoom pickup and anchor with `buildcfg.txt` offsets.
+   `build_item_pickups.py` does the same for armor and health: green armor = M3 marine armor,
+   blue armor = M5 riot armor, armor bonus = M10 helmet, stimpack = bicaridine autoinjector,
+   medikit = roll of gauze, health bonus = a red (bicaridine) pill. Armor blinks and the bonuses
+   pulse by brightening the frames. These icons come from `icons/obj/...`, whose sheet names
+   (`marine_armor`, `marine_helmets`) clash with the mob sheets, so `build_all.sh` extracts them
+   into `tgmc_sprites/obj_items/`.
 
 6. **First-person weapons: Freedoom's by default.** TGMC has only small side-view gun
    art, with nothing showing a gun from behind. Several attempts to build the rear view
@@ -145,6 +151,13 @@ running them in `dsda-doom`.
   through a custom bullet attack (`A_CustomBulletAttack` + `SNDINFO`), so the player's guns keep the normal sounds.
 - **Sizes**: `build_sprites.py --scale` sizes the living sprite (the Runner is 0.85) and `--death-scale` the death
   frames (default 0.75 of the living sprite).
+
+- **Music** (`build_music.py`, `music.wad`, **GZDoom/UZDoom only**): TGMC's repository has one real song, the
+  lobby theme (`config/lobby_themes/DawsonChristian.ogg`), plus the RoboCop elevator tune and the round ambience
+  loops. The lobby theme plays on the title, finale and text screens, the elevator tune on the intermission, and
+  the levels rotate through the lobby theme and nine ambience loops. Each track is stored once (loudness-normalized
+  with ffmpeg `loudnorm`, re-encoded as Vorbis), and an `SNDINFO` lump maps every Doom 1 and Doom 2 music name to a
+  track with `$musicalias`.
 
 ## Palette matching
 

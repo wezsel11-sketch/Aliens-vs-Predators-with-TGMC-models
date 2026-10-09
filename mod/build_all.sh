@@ -37,6 +37,11 @@ echo "== 1. extract TGMC sheets"
   icons/mob/inhands/guns/rifles_right_1.dmi icons/mob/inhands/guns/shotguns_right_1.dmi \
   icons/mob/inhands/guns/machineguns_right_64.dmi icons/obj/items/guns/pistols.dmi)
 
+# Item icons live in icons/obj/... and share sheet names with the mob sheets above, so they get their own folder.
+(cd "$TGMC" && $PY "$HERE/extract_dmi.py" . "$TS/obj_items" \
+  icons/obj/clothing/suits/marine_armor.dmi icons/obj/clothing/headwear/marine_helmets.dmi \
+  icons/obj/items/syringe.dmi icons/obj/stack_objects.dmi icons/obj/items/chemistry.dmi)
+
 echo "== 2. composite humanoids (S, N, E, W per unit)"
 # compose_units.py reads sheets from tgmc_sprites/ next to itself, so run it from a copy beside them.
 cp "$HERE/compose_units.py" "$HERE/doomlib.py" "$OUT/"
@@ -70,10 +75,13 @@ build CPOS HIJKLMNOPQRST --death-png "$TS/spitter/Spitter_Dead_f0_d0.png" "$TS/s
 $PY "$HERE/build_recolor.py" --freedoom "$SPR" --buildcfg "$CFG" --playpal "$IWAD" --prefix BAL1 \
   --out "$WADS/green_fireball.wad"
 
-echo "== 4. pickups"
+echo "== 4. pickups (ammo, weapons, armor, medical)"
 $PY "$HERE/build_ammo_pwad.py" --sprites "$TS" --freedoom "$SPR" --playpal "$IWAD" --out "$WADS/ammo_pickups.wad"
 $PY "$HERE/build_weapon_pickups.py" --sprites "$TS" --freedoom "$SPR" --buildcfg "$CFG" \
   --playpal "$IWAD" --out "$WADS/weapon_pickups.wad"
+
+$PY "$HERE/build_item_pickups.py" --sprites "$TS/obj_items" --freedoom "$SPR" --buildcfg "$CFG" \
+  --playpal "$IWAD" --out "$WADS/item_pickups.wad"
 
 echo "== 4b. optional voxel first-person weapons, and the rest of the alien enemies"
 # Not loaded by default: Freedoom's own first-person guns are kept. Load weapon_view_voxel.wad to swap them.
@@ -107,6 +115,9 @@ $PY "$HERE/build_sounds.py" --max-seconds 1.0 --peak 110 --out "$WADS/extra_soun
   DSDBCLS="$I/martini_cocked.ogg" DSWPNUP="$I/cocked.ogg" \
   DSSTEP1="$F/floor1.ogg" DSSTEP2="$F/floor2.ogg" DSSTEP3="$F/floor3.ogg" DSSTEP4="$F/floor4.ogg" DSSTEP5="$F/floor5.ogg" \
   --raw DECORATE="$HERE/marine_steps.decorate" SNDINFO="$HERE/marine_steps.sndinfo" MAPINFO="$HERE/marine_steps.mapinfo"
+
+echo "== 6. music (GZDoom/UZDoom only)"
+$PY "$HERE/build_music.py" --tgmc "$TGMC" --out "$WADS/music.wad"
 
 echo "== done: WADs in $WADS"
 ls -1 "$WADS"

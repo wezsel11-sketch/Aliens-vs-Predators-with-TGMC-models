@@ -181,5 +181,8 @@ $PY "$HERE/build_presentation.py" --tgmc "$TGMC" --freedoom "$FD" --playpal "$IW
   --out "$WADS/presentation.wad"
 $PY "$HERE/build_hive_textures.py" --sprites "$TS/obj_items" --out "$WADS/hive_textures.wad"
 
+echo "== 8. Operation: LV-624, TGMC's LV-624 map as a GZDoom/UZDoom level (a new episode)"
+$PY "$HERE/build_lv624.py" --tgmc "$TGMC" --out "$WADS/lv624.wad"
+
 echo "== done: WADs in $WADS"
 ls -1 "$WADS"

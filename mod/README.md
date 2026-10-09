@@ -26,7 +26,7 @@ Extracts the TGMC sheets, composites the humanoids, and builds every PWAD into
 `som_trooper`, `som_heavy`, `spitter_chaingunner`), `green_fireball`,
 `ammo_pickups`, `weapon_pickups`, `item_pickups`, `fuel_tank`, `xeno_gibs`, `hud_face`, the twelve `alien_*` enemy sets, `som_variants`, the sound sets (`gun_sounds`,
 `heavy_gun_sounds`, `voice_sounds`, `alien_sounds`, `extra_sounds`, `marine_voice`, `hive_ambience`), `music`,
-`presentation`, `hive_textures`, and the optional `weapon_view_voxel`. The steps below are what it runs.
+`presentation`, `hive_textures`, `lv624`, and the optional `weapon_view_voxel`. The steps below are what it runs.
 
 Actor mapping: player = TGMC marine; imp (`TROO`) = Spitter (its fireballs are
 recolored green, `green_fireball.wad`); zombieman (`POSS`) = SOM trooper with
@@ -220,6 +220,19 @@ running them in `dsda-doom`.
   (read from the built pickup WADs, `--wads`) labelled in Freedoom's small font over darkened lobby art; the story
   screens between episodes (`E1TEXT`-`E4TEXT`, `C1TEXT`-`C6TEXT`) are TGMC briefings over a dark weed floor
   (`TGMCSTRY`, from `build_hive_textures.py`).
+
+- **Operation: LV-624** (`build_lv624.py`, `dmm.py`, `lv624.wad`, **GZDoom/UZDoom**): TGMC's LV-624 ground map
+  (`_maps/map_files/LV624/LV624.dmm`, 220x180 tiles, read by `dmm.py`, which handles both the classic and the TGM
+  .dmm layouts) becomes a UDMF level, one 64x64 Doom square per tile. Closed turfs, framed windows and xeno resin
+  walls are solid; floors get Freedoom flats after their turf; outdoor areas get the sky, the caves a low rock
+  ceiling and dim light, the colony buildings a ceiling; the river is sunk 24 units. Connected tiles of one kind
+  are merged into sectors and walls are long runs, split wherever another wall ends on them. Airlocks and blast
+  doors open on use; the landing-zone shutters stay open. Around the xeno silo spawns the floor is weeds and the
+  cave walls resin. Things: the start on landing zone 1, an exit console on landing zone 2 (the script checks the
+  exit can be reached), xenos on a share of the weed nodes (more in the caves), eggs and warriors at the hive,
+  the Queen and a few Praetorians at the xeno start spots, Sons of Mars at survivor spots, dead marines at corpse
+  spawners, supplies at the supply spawners, fuel tanks. A MAPINFO lump adds the episode "Operation: LV-624";
+  GZDoom builds the nodes. Uses Freedoom 2's textures (play it with `freedoom2.wad`).
 
 ## Palette matching
 

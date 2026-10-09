@@ -14,7 +14,8 @@ material.
 - Freedoom IWADs to play with: `freedoom1.wad`, `freedoom2.wad`. Pass an IWAD as
   `--playpal`; the palette is read from its PLAYPAL lump. Do not use Freedoom's
   `lumps/playpal/playpal` file, which is not the real lump and gives wrong colors.
-- Python 3 with Pillow and numpy, and ffmpeg (for `build_sounds.py`)
+- Python 3 with Pillow (10.1 or newer, for its built-in scalable font) and numpy, and ffmpeg (for `build_sounds.py`
+  and `build_music.py`)
 
 ## One-step build
 
@@ -24,7 +25,8 @@ Extracts the TGMC sheets, composites the humanoids, and builds every PWAD into
 `<out-dir>/wads/`: the five actor sets (`xeno_troo`, `marine_player`,
 `som_trooper`, `som_heavy`, `spitter_chaingunner`), `green_fireball`,
 `ammo_pickups`, `weapon_pickups`, `item_pickups`, the twelve `alien_*` enemy sets, `som_variants`, the sound sets (`gun_sounds`,
-`heavy_gun_sounds`, `voice_sounds`, `alien_sounds`, `extra_sounds`), `music`, and the optional `weapon_view_voxel`. The steps below are what it runs.
+`heavy_gun_sounds`, `voice_sounds`, `alien_sounds`, `extra_sounds`, `marine_voice`, `hive_ambience`), `music`,
+`presentation`, `hive_textures`, and the optional `weapon_view_voxel`. The steps below are what it runs.
 
 Actor mapping: player = TGMC marine; imp (`TROO`) = Spitter (its fireballs are
 recolored green, `green_fireball.wad`); zombieman (`POSS`) = SOM trooper with
@@ -176,6 +178,24 @@ running them in `dsda-doom`.
   the levels rotate through the lobby theme and nine ambience loops. Each track is stored once (loudness-normalized
   with ffmpeg `loudnorm`, re-encoded as Vorbis), and an `SNDINFO` lump maps every Doom 1 and Doom 2 music name to a
   track with `$musicalias`.
+
+- **Title, menus and texts** (`build_presentation.py`, `presentation.wad`, **GZDoom/UZDoom**): TGMC lobby art
+  (`icons/misc/lobby_art`, 608x480, the same 4:3 shape as Doom's 320x200 screen) becomes the title screen
+  (`som_doomguy`, TGMC's Doom-cover parody), the title-loop page and the intermission background; the main-menu
+  logo is the TGMC eagle with "TGMC" lettering. A DEHACKED `[STRINGS]` block (not LANGUAGE: Freedoom sets these
+  strings in its own DEHACKED, which outranks LANGUAGE) names the levels after TGMC maps and replaces pickup,
+  death, monster, weapon, skill and quit texts. GameInfo `forcetextinmenus` makes the skill and episode menus use
+  the text, and the intermission level-name graphics (`CWILVxx`, `WILVem`) are redrawn with Freedoom's own font
+  glyphs (`graphics/text/fontchars`), because the intermission always prefers a graphic when one exists.
+- **Hive textures** (`build_hive_textures.py`, `hive_textures.wad`, **GZDoom/UZDoom**): Freedoom's flesh walls
+  (`SKIN*`, `SKSNAKE*`, `SKSPINE*`, `SKULWAL*`, `SK_LEFT/RIGHT`, `SLOPPY*`) become TGMC resin walls with weeds at the
+  bottom, eggs or a resin pod in the skull and face textures, and the snake-skin floors (`SFLR6_*`, `SFLR7_*`) become
+  weeds. Same sizes as Freedoom's, stored as full-colour PNGs in the `TX_START` namespace (the Doom palette has
+  almost no purple or teal, so quantizing them turned the resin into flat navy and grey).
+- **Marine voice and hive ambience** (**GZDoom/UZDoom**): the `TGMCMarine` class shouts a TGMC warcry now and then
+  while firing and calls for a medic below 30 health (`marine_voice.wad`). `hive_ambience.zs`, an event handler
+  registered by `hive_ambience.mapinfo`, plays a distant roar, vent crawling or a moving egg every 20 to 45 seconds
+  (`hive_ambience.wad`).
 
 ## Palette matching
 

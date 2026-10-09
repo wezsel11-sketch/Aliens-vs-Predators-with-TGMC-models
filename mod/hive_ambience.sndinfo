@@ -1,0 +1,10 @@
+// Distant hive noises played by the HiveAmbience event handler (hive_ambience.zs)
+hive/amb1 DSHIVE1
+hive/amb2 DSHIVE2
+hive/amb3 DSHIVE3
+hive/amb4 DSHIVE4
+hive/amb5 DSHIVE5
+hive/amb6 DSHIVE6
+hive/amb7 DSHIVE7
+hive/amb8 DSHIVE8
+$random hive/ambient { hive/amb1 hive/amb2 hive/amb3 hive/amb4 hive/amb5 hive/amb6 hive/amb7 hive/amb8 }

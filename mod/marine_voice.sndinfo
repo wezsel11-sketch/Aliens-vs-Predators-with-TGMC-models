@@ -1,0 +1,10 @@
+// TGMC marine voice lines (marine_voice.wad); played by the TGMCMarine class in marine_steps.decorate
+marine/warcry1 DSWCRY1
+marine/warcry2 DSWCRY2
+marine/warcry3 DSWCRY3
+marine/warcry4 DSWCRY4
+marine/warcry5 DSWCRY5
+$random marine/warcry { marine/warcry1 marine/warcry2 marine/warcry3 marine/warcry4 marine/warcry5 }
+marine/medic1 DSMEDIC1
+marine/medic2 DSMEDIC2
+$random marine/medic { marine/medic1 marine/medic2 }

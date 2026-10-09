@@ -44,7 +44,8 @@ echo "== 1. extract TGMC sheets"
   icons/obj/items/storage/firstaid.dmi icons/obj/items/storage/backpack.dmi icons/obj/clothing/glasses.dmi \
   icons/obj/items/pda.dmi icons/obj/clothing/suits/suits.dmi icons/obj/items/card.dmi \
   icons/obj/items/ammo/box.dmi icons/obj/items/ammo/rocket.dmi icons/obj/items/ammo/energy.dmi \
-  icons/obj/items/ammo/powerpack.dmi icons/Xeno/resin_pod.dmi icons/Xeno/Effects.dmi)
+  icons/obj/items/ammo/powerpack.dmi icons/Xeno/resin_pod.dmi icons/Xeno/Effects.dmi \
+  icons/Xeno/structures.dmi icons/Xeno/weeds.dmi)
 
 echo "== 2. composite humanoids (S, N, E, W per unit)"
 # compose_units.py reads sheets from tgmc_sprites/ next to itself, so run it from a copy beside them.
@@ -150,8 +151,21 @@ $PY "$HERE/build_sounds.py" --max-seconds 2.0 --peak 115 --out "$WADS/alien_soun
   DSVILATK="$A/spitacid2.ogg" DSFLAMST="$A/spitacid.ogg" DSFLAME="$TGMC/sound/bullets/acid_impact1.ogg" \
   DSSKLATK="$A/pounce.ogg" DSHUGDTH="$A/facehugger_dies.ogg" --raw SNDINFO="$HERE/alien_sounds.sndinfo"
 
+# Marine voice lines (played by the TGMCMarine class) and the hive ambience (a ZScript event handler).
+$PY "$HERE/build_sounds.py" --max-seconds 2.5 --peak 110 --out "$WADS/marine_voice.wad" --map \
+  DSWCRY1="$H/warcry_5.ogg" DSWCRY2="$H/warcry_13.ogg" DSWCRY3="$H/warcry_17.ogg" DSWCRY4="$H/warcry_21.ogg" \
+  DSWCRY5="$H/warcry_25.ogg" DSMEDIC1="$H/medic.ogg" DSMEDIC2="$H/medic2.ogg" --raw SNDINFO="$HERE/marine_voice.sndinfo"
+$PY "$HERE/build_sounds.py" --max-seconds 5.0 --peak 110 --out "$WADS/hive_ambience.wad" --map \
+  DSHIVE1="$A/distantroar_3.ogg" DSHIVE2="$A/xenos_roaring.ogg" DSHIVE3="$A/4_xeno_roars.ogg" DSHIVE4="$A/roar10.ogg" \
+  DSHIVE5="$E/ventcrawl1.ogg" DSHIVE6="$E/ventcrawl2.ogg" DSHIVE7="$E/ventpass1.ogg" DSHIVE8="$E/egg_move.ogg" \
+  --raw ZSCRIPT="$HERE/hive_ambience.zs" SNDINFO="$HERE/hive_ambience.sndinfo" MAPINFO="$HERE/hive_ambience.mapinfo"
+
 echo "== 6. music (GZDoom/UZDoom only)"
 $PY "$HERE/build_music.py" --tgmc "$TGMC" --out "$WADS/music.wad"
+
+echo "== 7. title screens, menu logo, texts and hive textures (GZDoom/UZDoom only)"
+$PY "$HERE/build_presentation.py" --tgmc "$TGMC" --freedoom "$FD" --playpal "$IWAD" --out "$WADS/presentation.wad"
+$PY "$HERE/build_hive_textures.py" --sprites "$TS/obj_items" --out "$WADS/hive_textures.wad"
 
 echo "== done: WADs in $WADS"
 ls -1 "$WADS"

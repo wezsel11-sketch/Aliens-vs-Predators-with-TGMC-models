@@ -1,5 +1,6 @@
-// The player is a TGMC marine whose boots make TGMC footstep sounds while walking (GZDoom/UZDoom only).
-// MAPINFO's GameInfo makes this the player class; the sprites stay PLAY*, replaced by marine_player.wad.
+// The player is a TGMC marine (GZDoom/UZDoom only): TGMC footsteps while walking, a warcry now and then
+// while shooting, and a call for a medic when badly hurt. MAPINFO's GameInfo makes this the player class;
+// the sprites stay PLAY*, replaced by marine_player.wad. Sounds: extra_sounds.wad and marine_voice.wad.
 ACTOR TGMCMarine : DoomPlayer
 {
   Player.DisplayName "Marine"
@@ -11,5 +12,25 @@ ACTOR TGMCMarine : DoomPlayer
     PLAY C 4 A_StartSound("marine/step", CHAN_AUTO, 0, 0.45)
     PLAY D 4
     Loop
+  Missile:
+    // entered on every shot, so the chance is small; CHANF_NOSTOP keeps one warcry from cutting off another
+    PLAY E 0 A_Jump(5, "Warcry")
+    PLAY E 12
+    Goto Spawn
+  Warcry:
+    PLAY E 0 A_StartSound("marine/warcry", CHAN_6, CHANF_NOSTOP)
+    PLAY E 12
+    Goto Spawn
+  Pain:
+    PLAY G 4
+    PLAY G 4 A_Pain
+    PLAY G 0 A_JumpIfHealthLower(30, "LowHealth")
+    Goto Spawn
+  LowHealth:
+    PLAY G 0 A_Jump(96, "Medic")
+    Goto Spawn
+  Medic:
+    PLAY G 0 A_StartSound("marine/medic", CHAN_6, CHANF_NOSTOP)
+    Goto Spawn
   }
 }

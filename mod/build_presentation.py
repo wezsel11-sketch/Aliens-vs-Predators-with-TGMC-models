@@ -5,22 +5,25 @@ Pictures (TGMC lobby art, icons/misc/lobby_art/*.dmi, 608x480 = 4:3 like Doom's 
   CREDIT   <- tgmcpropaganda (shown in the title loop)
   INTERPIC <- marinesonlvriver (intermission background)
   M_DOOM   <- the TGMC eagle from tgmclogo plus "TGMC" lettering (Pillow's built-in font), at Freedoom's size
+HELP (Doom 2) and HELP1 (Doom 1) are redrawn as a TGMC "field manual": the TGMC pickups (read from the built
+pickup WADs, --wads) labelled in Freedoom's small HUD font, over a darkened lobby-art picture.
 A DEHACKED [STRINGS] block renames the levels after TGMC maps (Freedoom 1 and 2), and replaces pickup
-messages, death messages, monster and weapon names, the Doom 2 cast call, skill names and quit messages. It is
+messages, death messages, monster and weapon names, the Doom 2 cast call, skill names, quit messages and the
+story screens (TGMC mission briefings and after-action reports, over a dark weed floor). It is
 DEHACKED and not LANGUAGE because Freedoom sets these strings in its own DEHACKED lump, which outranks any
 LANGUAGE lump; a later DEHACKED lump overrides it. A MAPINFO lump sets GameInfo forcetextinmenus, so GZDoom/UZDoom
 show the skill and episode names as text. The intermission screen always prefers the level-name graphics
 (CWILV00-31 for Doom 2, WILVem for Doom 1), so those are redrawn with the TGMC names in Freedoom's own font
 (graphics/text/fontchars in the Freedoom checkout).
 
-usage: build_presentation.py --tgmc TGMC_ROOT --freedoom FREEDOOM_ROOT --playpal IWAD --out WAD
+usage: build_presentation.py --tgmc TGMC_ROOT --freedoom FREEDOOM_ROOT --playpal IWAD --wads WAD_DIR --out WAD
 """
 import argparse
 import os
 import struct
 import sys
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageEnhance, ImageFont
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import doomlib as dl  # noqa: E402
@@ -115,6 +118,38 @@ TEXTS = {
     "OB_VILE": "%o was burned by a Praetorian's acid.", "OB_SPIDER": "%o was executed by the Queen.",
     "OB_CYBORG": "%o was incinerated by a Dragon.",
 }
+# Story screens between episodes (Freedoom 1: E1-E4) and between Doom 2 chapters (C1-C6), and their background:
+# TGMCSTRY, a dark weed floor from hive_textures.wad.
+STORY = {
+    "E1TEXT": "The colony is quiet again. Your squad\nclawed its way from the landing zone\nthrough every corridor of the outpost.\n\n"
+              "But the distress beacon is still\nscreaming, and the tunnels under the\ncolony go deeper than any map shows.\n\n"
+              "Command has a new order: go down there.",
+    "E2TEXT": "You found the hive. Resin coated the\nwalls, eggs lined the floors, and the\nthings that crawled out of them never\n"
+              "stopped coming.\n\nYou burned the nest and fought your way\nback to the surface. On the horizon a\n"
+              "Sons of Mars dropship is landing.\nSomeone else wants this planet too.",
+    "E3TEXT": "The Sons of Mars wanted the xenos for\nthemselves: cages, pens, a whole base\nbuilt to breed them into weapons.\n\n"
+              "Their base is ash now. But the cages\nare empty, and the trail of acid leads\nto the one place nobody came back\n"
+              "from: the Queen's nest.",
+    "E4TEXT": "The Queen is dead. Her screech still\nrings in your ears as the dropship\nlifts off the burning colony.\n\n"
+              "The hive is silent. The marines who\nmade it out sit quietly in the cargo\nbay, counting the ones who didn't.\n\n"
+              "Game over, man? Not today.\nTerraGov Marine Corps: mission complete.",
+    "C1TEXT": "You punched through the outer\ncolonies. Every outpost tells the same\nstory: barricades, empty magazines,\n"
+              "and resin creeping over the walls.\n\nThe infestation is spreading faster\nthan Command thought. Push on.",
+    "C2TEXT": "Deep in the research wing you find\nthe logs. Someone brought the first\negg here on purpose.\n\n"
+              "The logs carry a Sons of Mars seal.\nThe next drop takes you to their\nmining operations.",
+    "C3TEXT": "The Sons of Mars are finished here,\nbut their work is not. Every tunnel\nyou clear leads deeper into the hive.\n\n"
+              "The ground itself is alive now.\nSomewhere below, the Queen is waiting.",
+    "C4TEXT": "The Queen's nest burns behind you.\nThe screeching stops. For the first\ntime since the drop, the colony is\nquiet.\n\n"
+              "The dropship is waiting at the landing\nzone. You walk, you don't run.\nYou've earned that.\n\n"
+              "TerraGov Marine Corps: mission complete.",
+    "C5TEXT": "A hidden transmission points you to\nFort Phobos, a base the colony maps\ndon't show. Something there is still\n"
+              "broadcasting. Go and see what it is.",
+    "C6TEXT": "Fort Phobos held one last secret: a\ncombat patrol base, overrun but not\nlost. Clear it, and the sector is yours.",
+}
+STORY_BACKGROUND = "TGMCSTRY"
+BGFLATS = ["BGFLATE1", "BGFLATE2", "BGFLATE3", "BGFLATE4", "BGFLAT06", "BGFLAT11", "BGFLAT20", "BGFLAT30",
+           "BGFLAT15", "BGFLAT31"]
+
 NAMES = {"ZOMBIE": "Sons of Mars Trooper", "SHOTGUN": "Sons of Mars Heavy", "HEAVY": "Spitter", "IMP": "Spitter",
          "DEMON": "Runner", "LOST": "Facehugger", "CACO": "Shrike", "HELL": "Warrior", "BARON": "Crusher",
          "ARACH": "Widow", "PAIN": "Carrier", "REVEN": "Hunter", "MANCU": "Boiler", "ARCH": "Praetorian",
@@ -147,6 +182,94 @@ def level_name_patches(fontdir, pal):
     lumps = [(f"CWILV{i:02d}", patch(name)) for i, name in enumerate(DOOM2_MAPS)]
     lumps += [(f"WILV{i // 9}{i % 9}", patch(name)) for i, name in enumerate(DOOM1_MAPS)]
     return lumps
+
+
+HELP_BACKGROUND = "marinesonlvriver"
+# rows of (label, pickup sprites); every sprite comes from the built pickup WADs
+HELP_ROWS = [
+    [("Weapons", ["CSAWA0", "SHOTA0", "SGN2A0", "MGUNA0", "LAUNA0", "PLASA0", "BFUGA0"])],
+    [("Bullets", ["CLIPA0", "AMMOA0"]), ("Shells", ["SHELA0", "SBOXA0"]), ("Backpack", ["BPAKA0"])],
+    [("Rockets", ["ROCKA0", "BROKA0"]), ("Cells", ["CELLA0", "CELPA0"]), ("Berserk", ["PSTRA0"])],
+    [("Medical", ["BON1A0", "STIMA0", "MEDIA0"]), ("Armor", ["BON2A0", "ARM1A0", "ARM2A0"])],
+    [("Big kits", ["SOULA0", "MEGAA0"]), ("Tablet", ["PMAPA0"]), ("Goggles", ["PVISA0"])],
+    [("Rad suit", ["SUITA0"]), ("Costume", ["PINSA0"]), ("Bomb suit", ["PINVA0"]),
+     ("Keys", ["BKEYA0", "RKEYA0", "YKEYA0"])],
+]
+HELP_WADS = ["weapon_pickups.wad", "ammo_pickups.wad", "item_pickups.wad"]
+
+
+def wad_lumps(path):
+    d = open(path, "rb").read()
+    n, off = struct.unpack("<4xII", d[:12])
+    out = {}
+    for i in range(n):
+        p, size, name = struct.unpack("<II8s", d[off + 16 * i:off + 16 * i + 16])
+        out[name.rstrip(b"\0").decode()] = d[p:p + size]
+    return out
+
+
+def decode_patch(b, pal):
+    """A Doom patch lump as an RGBA image in palette colours."""
+    w, h = struct.unpack("<hh", b[:4])
+    offs = struct.unpack("<%dI" % w, b[8:8 + 4 * w])
+    img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    px = img.load()
+    for x, o in enumerate(offs):
+        while b[o] != 0xFF:
+            top, length = b[o], b[o + 1]
+            for k in range(length):
+                px[x, top + k] = tuple(pal[b[o + 3 + k]]) + (255,)
+            o += 4 + length
+    return img
+
+
+def small_text(graphics, text):
+    """Text in Freedoom's small HUD font (graphics/stcfnNNN.png, upper case, red)."""
+    glyphs = [Image.open(os.path.join(graphics, "stcfn%03d.png" % ord(c))).convert("RGBA") if c != " " else None
+              for c in text.upper()]
+    width = sum(g.width if g else 4 for g in glyphs)
+    out = Image.new("RGBA", (width, max(g.height for g in glyphs if g)), (0, 0, 0, 0))
+    x = 0
+    for g in glyphs:
+        if g:
+            out.alpha_composite(g, (x, 0))
+        x += g.width if g else 4
+    return out
+
+
+def help_page(tgmc, freedoom, wads, pal):
+    sprites = {}
+    for name in HELP_WADS:
+        sprites.update(wad_lumps(os.path.join(wads, name)))
+    graphics = os.path.join(freedoom, "graphics")
+    page = ImageEnhance.Brightness(lobby_art(tgmc, HELP_BACKGROUND).convert("RGB").resize((320, 200), Image.LANCZOS))
+    page = page.enhance(0.35).convert("RGBA")
+    title = freedoom_text(os.path.join(graphics, "text", "fontchars"), "Field Manual")
+    page.alpha_composite(title, ((320 - title.width) // 2, 2))
+    y, row_h = 21, 30
+    for row in HELP_ROWS:
+        sections = []
+        for label, names in row:
+            items = [dl.crop_content(decode_patch(sprites[n], pal)) for n in names]
+            sections.append((small_text(graphics, label), items))
+        tallest = max(i.height for _, items in sections for i in items)
+        k = min(1.0, (row_h - 10) / tallest)
+        for _ in range(20):   # shrink until the row fits the screen width
+            width = sum(max(t.width, sum(round(i.width * k) + 3 for i in items)) + 10 for t, items in sections)
+            if width <= 314:
+                break
+            k *= 0.9
+        x = 3 + (314 - width) // 2
+        for text, items in sections:
+            page.alpha_composite(text, (x, y))
+            ix = x
+            for item in items:
+                item = item.resize((max(1, round(item.width * k)), max(1, round(item.height * k))), Image.NEAREST)
+                page.alpha_composite(item, (ix, y + row_h - 1 - item.height))
+                ix += item.width + 3
+            x = max(x + text.width, ix) + 10
+        y += row_h
+    return dl.encode_patch(320, 200, dl.to_grid(page, pal), 0, 0)
 
 
 def lobby_art(tgmc, name):
@@ -194,6 +317,7 @@ def strings():
     pairs += list(EPISODES.items()) + list(TEXTS.items())
     for k, v in NAMES.items():
         pairs += [(f"CC_{k}", v), (f"FN_{k}", v)]
+    pairs += list(STORY.items()) + [(k, STORY_BACKGROUND) for k in BGFLATS]
     return pairs + [("FN_SPECTRE", "Stalking Runner"), ("CC_HERO", "Our Marine")]
 
 
@@ -219,12 +343,15 @@ def main():
     ap.add_argument("--tgmc", required=True)
     ap.add_argument("--freedoom", required=True, help="Freedoom checkout (its big font glyphs are used)")
     ap.add_argument("--playpal", required=True)
+    ap.add_argument("--wads", required=True, help="the built WADs (pickup sprites for the help page)")
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
     assert len(DOOM2_MAPS) == 32 and len(DOOM1_MAPS) == 36 and len(set(DOOM1_MAPS)) == 36
     pal = dl.load_palette(args.playpal)
     lumps = [(lump, screen(lobby_art(args.tgmc, art), pal)) for lump, art in SCREENS.items()]
     lumps.append(("M_DOOM", logo(args.tgmc, pal)))
+    page = help_page(args.tgmc, args.freedoom, args.wads, pal)
+    lumps += [("HELP", page), ("HELP1", page)]
     lumps += level_name_patches(os.path.join(args.freedoom, "graphics", "text", "fontchars"), pal)
     lumps.append(("DEHACKED", dehacked()))
     lumps.append(("MAPINFO", b"GameInfo\n{\n  forcetextinmenus = true\n}\n"))

@@ -24,7 +24,7 @@ material.
 Extracts the TGMC sheets, composites the humanoids, and builds every PWAD into
 `<out-dir>/wads/`: the five actor sets (`xeno_troo`, `marine_player`,
 `som_trooper`, `som_heavy`, `spitter_chaingunner`), `green_fireball`,
-`ammo_pickups`, `weapon_pickups`, `item_pickups`, `fuel_tank`, the twelve `alien_*` enemy sets, `som_variants`, the sound sets (`gun_sounds`,
+`ammo_pickups`, `weapon_pickups`, `item_pickups`, `fuel_tank`, `xeno_gibs`, `hud_face`, the twelve `alien_*` enemy sets, `som_variants`, the sound sets (`gun_sounds`,
 `heavy_gun_sounds`, `voice_sounds`, `alien_sounds`, `extra_sounds`, `marine_voice`, `hive_ambience`), `music`,
 `presentation`, `hive_textures`, and the optional `weapon_view_voxel`. The steps below are what it runs.
 
@@ -203,6 +203,23 @@ running them in `dsda-doom`.
   while firing and calls for a medic below 30 health (`marine_voice.wad`). `hive_ambience.zs`, an event handler
   registered by `hive_ambience.mapinfo`, plays a distant roar, vent crawling or a moving egg every 20 to 45 seconds
   (`hive_ambience.wad`).
+
+- **Xeno gibs and acid puddles** (`build_xeno_gibs.py`, `xeno_gibs.wad`, **GZDoom/UZDoom**): each caste's TGMC gib
+  animation (the body bursting into acid) becomes a sprite set `XG??` (frames A-E from the animation, F the remains,
+  one shared box, the living sprite's scale), used by `XDeath` states in `build_alien_attacks.py` with a `GibHealth`
+  per alien (bosses still run `A_BossDeath`). Doom's gib sound is TGMC's `gib.ogg`. The acid projectiles sometimes
+  leave a bubbling puddle (`ACPD`, Effects `acid2`) that lies flat on the floor and burns for a few seconds with
+  damage type `Acid`; every alien has `DamageFactor "Acid", 0`.
+- **More decorations** (`build_item_pickups.py`): lamps become TGMC floodlights and a lantern, candles, candelabras
+  and torches lit TGMC flares (red, green, blue), hanging bodies and gibs marines cocooned in resin (they keep the
+  original top offset, so they still hang from the ceiling), the tech column a telecomms rack.
+- **HUD face** (`build_hud_face.py`, `hud_face.wad`): the status bar face is the composited marine's head and
+  shoulders (13x13 TGMC pixels, scaled 2x), with blood per pain level, side views for turning, and tinted
+  ouch, grin, rampage, god and dead faces.
+- **Help and story screens** (`build_presentation.py`): `HELP`/`HELP1` are a TGMC "field manual" of the pickups
+  (read from the built pickup WADs, `--wads`) labelled in Freedoom's small font over darkened lobby art; the story
+  screens between episodes (`E1TEXT`-`E4TEXT`, `C1TEXT`-`C6TEXT`) are TGMC briefings over a dark weed floor
+  (`TGMCSTRY`, from `build_hive_textures.py`).
 
 ## Palette matching
 

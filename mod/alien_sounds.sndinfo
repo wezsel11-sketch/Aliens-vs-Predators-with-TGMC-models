@@ -1,2 +1,4 @@
 // The facehugger (Lost Soul) gets its own death sound; Doom's DSFIRXPL is shared with fireball impacts.
 alien/hugger_die DSHUGDTH
+// Acid puddles (build_alien_attacks.py) sizzle with the acid impact sound
+acid/sizzle DSFLAME

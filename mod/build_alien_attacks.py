@@ -10,6 +10,10 @@ Writes a DECORATE lump plus recolored projectile sprites:
   * Every alien bleeds green acid (BloodColor). This file holds all the alien DECORATE replacements,
     so no other WAD replaces the same class. The Spitter imp and chaingunner also name their xeno
     sounds here, so they do not depend on the DEHACKED patch reaching a replacement class.
+  * Aliens killed by a big overkill (a rocket, a fuel tank) burst apart: XDeath states with TGMC's gib animations
+    (sprites XG?? from build_xeno_gibs.py, xeno_gibs.wad), each with its own GibHealth.
+  * Acid puddles: the acid projectiles sometimes leave a bubbling puddle (ACPD, xeno_gibs.wad) that burns for a
+    few seconds with damage type "Acid"; every alien has DamageFactor "Acid", 0, so only marines and SOM burn.
   * The Lost Soul is a facehugger that runs on the floor and leaps at you (no flying, no glow), with its own
     death sound (alien/hugger_die, from alien_sounds.wad).
 The imp's fireball (BAL1) is recolored by build_all.sh's green_fireball.wad; the acid reuses those sprites.
@@ -165,6 +169,87 @@ for _cls, _base in [("AlienRunner", "Demon"), ("AlienStalker", "Spectre"), ("Ali
                     ("AlienCrusher", "BaronOfHell"), ("AlienWarrior", "HellKnight"), ("AlienHunter", "Revenant"),
                     ("AlienBoiler", "Fatso"), ("AlienCarrier", "PainElemental"), ("AlienPraetorian", "Archvile")]:
     DECORATE += f"\nACTOR {_cls} : {_base} replaces {_base}\n{{\n\tBloodColor \"30 D0 20\"\n}}\n"
+
+DECORATE += """
+// A puddle of acid that falls to the floor, lies flat and burns anything standing in it (aliens are immune).
+ACTOR AcidPuddle
+{
+	Radius 16
+	Height 4
+	+FLATSPRITE
+	+NOTELEPORT
+	+DONTSPLASH
+	-NOGRAVITY
+	RenderStyle Translucent
+	Alpha 0.85
+	DamageType "Acid"
+	States
+	{
+	Spawn:
+		ACPD A 0 NoDelay A_StartSound("acid/sizzle", CHAN_BODY, 0, 0.5)
+		ACPD ABCABCABCABCABC 9 A_Explode(2, 40, XF_NOTMISSILE, false, 40)
+		ACPD ABC 6 A_FadeOut(0.3)
+		Stop
+	}
+}
+
+// The Spitter imp's own fireball leaves a puddle half of the time.
+ACTOR SpitterBall : DoomImpBall replaces DoomImpBall
+{
+	States
+	{
+	Death:
+		BAL1 C 0 A_SpawnItemEx("AcidPuddle", 0, 0, 0, 0, 0, 0, 0, SXF_NOCHECKPOSITION, 128)
+		BAL1 CDE 6 Bright
+		Stop
+	}
+}
+"""
+# chance (0-255) that an acid projectile does NOT leave a puddle; the rapid-fire ones leave fewer
+for _cls, _fail in [("SpitterAcid", 200), ("ArachnotronAcid", 180), ("DragonAcid", 0)]:
+    _i = DECORATE.index(f"ACTOR {_cls} ")
+    _end = DECORATE.index("\n}\n", _i)
+    DECORATE = DECORATE[:_end] + (
+        "\n\tStates\n\t{\n\tDeath:\n"
+        f"\t\tBAL1 C 0 A_SpawnItemEx(\"AcidPuddle\", 0, 0, 0, 0, 0, 0, 0, SXF_NOCHECKPOSITION, {_fail})\n"
+        "\t\tBAL1 CDE 6 Bright\n\t\tStop\n\t}") + DECORATE[_end:]
+
+# Doom's boss monsters run A_BossDeath when they die (map specials: E1M8, MAP07, E4M8...); a gibbed one must too.
+BOSSES = {"AlienCrusher", "AlienBoiler", "AlienWidow", "AlienDragon", "AlienQueen"}
+# alien class -> (gib sprite from build_xeno_gibs.py or None, GibHealth)
+ALIENS = {
+    "AlienSpitter": ("XGSP", -40), "AlienChaingunner": ("XGSP", -40), "AlienRunner": ("XGRU", -50),
+    "AlienStalker": ("XGRU", -50), "AlienShrike": ("XGSH", -80), "AlienCrusher": ("XGCR", -150),
+    "AlienWarrior": ("XGWA", -120), "AlienHunter": ("XGHU", -80), "AlienBoiler": ("XGBO", -150),
+    "AlienWidow": ("XGWI", -150), "AlienCarrier": ("XGCA", -120), "AlienDragon": ("XGDR", -400),
+    "AlienQueen": ("XGQU", -400), "AlienPraetorian": ("XGPR", -150), "AlienHugger": (None, 0),
+}
+
+
+def _extend(decorate, cls, props, states):
+    """Add property lines and states to the ACTOR block of `cls`."""
+    start = decorate.index(f"ACTOR {cls} ")
+    body_start = decorate.index("{\n", start) + 2
+    end = decorate.index("\n}\n", start)
+    body = decorate[body_start:end]
+    if states:
+        if "\tStates\n\t{\n" in body:
+            cut = body.rindex("\t}")
+            body = body[:cut] + states + body[cut:]
+        else:
+            body = body.rstrip("\n") + "\n\tStates\n\t{\n" + states + "\t}"
+    return decorate[:body_start] + props + body + decorate[end:]
+
+
+for _cls, (_gib, _health) in ALIENS.items():
+    _props = '\tDamageFactor "Acid", 0\n'
+    _states = ""
+    if _gib:
+        _props += f"\tGibHealth {_health}\n"
+        _states = (f"\tXDeath:\n\t\t{_gib} A 4\n\t\t{_gib} B 4 A_XScream\n\t\t{_gib} C 4 A_NoBlocking\n"
+                   f"\t\t{_gib} D 4\n\t\t{_gib} E 4{' A_BossDeath' if _cls in BOSSES else ''}\n"
+                   f"\t\t{_gib} F -1\n\t\tStop\n")
+    DECORATE = _extend(DECORATE, _cls, _props, _states)
 
 
 def run(cmd):

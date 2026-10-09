@@ -90,9 +90,9 @@ def flat(sheets, rnd):
     return img
 
 
-def png(img):
+def png(img, brightness=BRIGHTNESS):
     """Brighten and return the bytes of an RGB PNG."""
-    img = ImageEnhance.Brightness(img.convert("RGB")).enhance(BRIGHTNESS)
+    img = ImageEnhance.Brightness(img.convert("RGB")).enhance(brightness)
     buf = io.BytesIO()
     img.save(buf, format="PNG")
     return buf.getvalue()
@@ -109,6 +109,8 @@ def main():
         lumps.append((name, png(wall(sheets, name, w, h, style, random.Random(name)))))
     for name in FLATS:
         lumps.append((name, png(flat(sheets, random.Random(name)))))
+    # a darker weed floor for the story text screens (their BGFLAT, set by build_presentation.py)
+    lumps.append(("TGMCSTRY", png(flat(sheets, random.Random("story")), brightness=0.8)))
     lumps.append(("TX_END", b""))
     data, directory, pos = b"", b"", 12
     for name, body in lumps:

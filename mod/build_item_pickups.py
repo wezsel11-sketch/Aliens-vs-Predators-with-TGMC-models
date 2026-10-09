@@ -13,7 +13,10 @@ Mapping:
   PINV invulnerability = bomb suit, PINS invisibility = xeno costume,
   keys (cards and skulls) = the silver ID card tinted blue, red or yellow (the colours must read at a distance),
   SBOX = buckshot box, BROK = quad rockets, CELL = plasma cell, CELP = powerpack.
-  Decorations POL1-POL6 (impaled bodies, skull piles) become xeno eggs, a resin pod and burst-egg remains.
+  Decorations POL1-POL6 (impaled bodies, skull piles) become xeno eggs, a resin pod and burst-egg remains;
+  lamps become floodlights and a lantern, candles, candelabras and torches become lit TGMC flares (red, green
+  and blue, flickering), hanging bodies and gibs (GOR, HDB) become marines cocooned in resin, and the tech
+  column (ELEC) a telecomms server rack.
 
 The sheets come from icons/obj/..., whose names clash with the mob sheets (marine_armor, marine_helmets),
 so extract them into their own folder and pass it as --sprites. Every Freedoom frame of a pickup is
@@ -70,11 +73,35 @@ MAPPING = [
     ("POL4", "Effects", "egg_hugger2", 1.6, 0.6, 0),
     ("POL5", "Effects", "egg exploding#6", 1.0, 2.5, 0),
     ("POL6", "Effects", "egg_hugger1", 1.6, 0.5, 0, {"A": "egg_hugger1", "B": "egg opening#1"}),
+    ("COLU", "floodlight", "floodon", 1.6, 1.0, 0),
+    ("TLMP", "floodlight", "floodlightcombat_deployed_on", 2.4, 0.8, 0),
+    ("TLP2", "lighting", "lantern-on", 1.6, 0.7, 0),
+    ("CAND", "grenade", "flare_active", 2.0, 1.2, 0),
+    ("CBRA", "grenade", "flare_grenade_active", 1.5, 0.9, 0),
+    ("TBLU", "grenade", "stronger_flare_grenade_active", 1.5, 0.8, 0),
+    ("TGRN", "grenade", "cas_flare_grenade_active", 1.5, 0.8, 0),
+    ("TRED", "grenade", "flare_grenade_active", 1.5, 0.8, 0),
+    ("SMBT", "grenade", "stronger_flare_grenade_active", 1.2, 0.6, 0),
+    ("SMGT", "grenade", "cas_flare_grenade_active", 1.2, 0.6, 0),
+    ("SMRT", "grenade", "flare_grenade_active", 1.2, 0.6, 0),
+    ("GOR1", "cocoon", "xeno_cocoon", 1.6, 0.9, 90),
+    ("GOR2", "cocoon", "xeno_cocoon", 1.4, 0.9, 90),
+    ("GOR3", "cocoon", "xeno_cocoon_open", 1.6, 0.9, 90),
+    ("GOR4", "cocoon", "xeno_cocoon", 1.2, 0.9, 90),
+    ("GOR5", "cocoon", "xeno_cocoon", 1.2, 0.9, 90),
+    ("HDB1", "cocoon", "xeno_cocoon", 1.4, 0.5, 90),
+    ("HDB2", "cocoon", "xeno_cocoon_open", 1.4, 0.5, 90),
+    ("HDB3", "cocoon", "xeno_cocoon", 1.4, 0.5, 90),
+    ("HDB4", "cocoon", "xeno_cocoon_open", 1.4, 0.5, 90),
+    ("HDB5", "cocoon", "xeno_cocoon", 1.4, 0.5, 90),
+    ("HDB6", "cocoon", "xeno_cocoon_open", 1.4, 0.5, 90),
+    ("ELEC", "telecomms", "hub", 1.3, 0.6, 0),
 ]
 MAX_UPSCALE = 2.0
 # brightness per frame letter: armor blinks, bonuses pulse
 GLOW = {"A": 1.0, "B": 1.25, "C": 1.4, "D": 1.2, "E": 1.1, "F": 1.05}
-NO_GLOW = ("POL",)  # decorations do not pulse
+HANGING = ("GOR", "HDB")  # hang from the ceiling: keep the top offset so they still touch it
+NO_GLOW = ("POL", "GOR", "HDB", "ELEC")  # these decorations do not pulse (lamps and flares flicker)
 _BLUE, _RED, _YELLOW = (80, 130, 255), (255, 70, 60), (255, 220, 70)
 TINT = {"BKEY": _BLUE, "BSKU": _BLUE, "RKEY": _RED, "RSKU": _RED, "YKEY": _YELLOW, "YSKU": _YELLOW}
 
@@ -142,7 +169,8 @@ def main():
             art = art.resize((nw, nh), Image.NEAREST)
             if not per_frame and not prefix.startswith(NO_GLOW):
                 art = brighten(art, GLOW.get(letter, 1.0))
-            new_left, new_top = round(left * nw / orig.width), round(top * nh / orig.height)
+            new_left = round(left * nw / orig.width)
+            new_top = top if prefix.startswith(HANGING) else round(top * nh / orig.height)
             lumps.append((f"{prefix}{letter}0", dl.encode_patch(nw, nh, dl.to_grid(art, pal), new_left, new_top)))
         print(f"{prefix}: {sheet}:{state} -> {round(base.width * fit)}x{round(base.height * fit)} "
               f"(orig {orig.width}x{orig.height}), {len(frames)} frames")

@@ -45,7 +45,9 @@ echo "== 1. extract TGMC sheets"
   icons/obj/items/pda.dmi icons/obj/clothing/suits/suits.dmi icons/obj/items/card.dmi \
   icons/obj/items/ammo/box.dmi icons/obj/items/ammo/rocket.dmi icons/obj/items/ammo/energy.dmi \
   icons/obj/items/ammo/powerpack.dmi icons/Xeno/resin_pod.dmi icons/Xeno/Effects.dmi \
-  icons/Xeno/structures.dmi icons/Xeno/weeds.dmi icons/obj/objects.dmi icons/effects/96x96.dmi)
+  icons/Xeno/structures.dmi icons/Xeno/weeds.dmi icons/obj/objects.dmi icons/effects/96x96.dmi \
+  icons/obj/items/grenade.dmi icons/obj/cocoon.dmi icons/obj/machines/floodlight.dmi icons/obj/lighting.dmi \
+  icons/obj/machines/telecomms.dmi)
 
 echo "== 2. composite humanoids (S, N, E, W per unit)"
 # compose_units.py reads sheets from tgmc_sprites/ next to itself, so run it from a copy beside them.
@@ -97,6 +99,10 @@ echo "== 4b. optional voxel first-person weapons, and the rest of the alien enem
 PYTHONPATH="$HERE" python3 -s "$HERE/build_weapon_view.py" --sprites "$TS" --freedoom "$SPR" --buildcfg "$CFG" --playpal "$IWAD" \
   --out "$WADS/weapon_view_voxel.wad"
 bash "$HERE/build_aliens.sh" "$TGMC" "$FD" "$IWAD" "$OUT"
+# TGMC gib animations for the aliens' XDeath states (build_alien_attacks.py), plus the acid puddle sprite.
+$PY "$HERE/build_xeno_gibs.py" --sprites "$TS" --freedoom "$SPR" --playpal "$IWAD" --out "$WADS/xeno_gibs.wad"
+# The status bar face: the composited marine's head and shoulders.
+$PY "$HERE/build_hud_face.py" --marine-dirs "$OUT/marine_dirs" --freedoom "$FD" --playpal "$IWAD" --out "$WADS/hud_face.wad"
 
 echo "== 4c. five SOM looks per slot with a random spawner (GZDoom/UZDoom only)"
 $PY "$HERE/build_som_variants.py" --out "$OUT" --freedoom "$FD" --iwad "$IWAD" --tgmc "$TGMC"
@@ -156,7 +162,7 @@ $PY "$HERE/build_sounds.py" --max-seconds 2.0 --peak 115 --out "$WADS/alien_soun
   DSSPISIT="$A/queen_screech.ogg" DSSPIDTH="$A/queen_died.ogg" \
   DSVILSIT="$A/roar12.ogg" DSVILACT="$A/hiss1.ogg" DSVIPAIN="$A/growl1.ogg" DSVILDTH="$A/death2.ogg" \
   DSVILATK="$A/spitacid2.ogg" DSFLAMST="$A/spitacid.ogg" DSFLAME="$TGMC/sound/bullets/acid_impact1.ogg" \
-  DSSKLATK="$A/pounce.ogg" DSHUGDTH="$A/facehugger_dies.ogg" --raw SNDINFO="$HERE/alien_sounds.sndinfo"
+  DSSKLATK="$A/pounce.ogg" DSHUGDTH="$A/facehugger_dies.ogg" DSSLOP="$TGMC/sound/effects/gib.ogg" --raw SNDINFO="$HERE/alien_sounds.sndinfo"
 
 # Marine voice lines (played by the TGMCMarine class) and the hive ambience (a ZScript event handler).
 $PY "$HERE/build_sounds.py" --max-seconds 2.5 --peak 110 --out "$WADS/marine_voice.wad" --map \
@@ -171,7 +177,8 @@ echo "== 6. music (GZDoom/UZDoom only)"
 $PY "$HERE/build_music.py" --tgmc "$TGMC" --out "$WADS/music.wad"
 
 echo "== 7. title screens, menu logo, texts and hive textures (GZDoom/UZDoom only)"
-$PY "$HERE/build_presentation.py" --tgmc "$TGMC" --freedoom "$FD" --playpal "$IWAD" --out "$WADS/presentation.wad"
+$PY "$HERE/build_presentation.py" --tgmc "$TGMC" --freedoom "$FD" --playpal "$IWAD" --wads "$WADS" \
+  --out "$WADS/presentation.wad"
 $PY "$HERE/build_hive_textures.py" --sprites "$TS/obj_items" --out "$WADS/hive_textures.wad"
 
 echo "== done: WADs in $WADS"

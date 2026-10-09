@@ -75,9 +75,10 @@ $PY "$HERE/build_ammo_pwad.py" --sprites "$TS" --freedoom "$SPR" --playpal "$IWA
 $PY "$HERE/build_weapon_pickups.py" --sprites "$TS" --freedoom "$SPR" --buildcfg "$CFG" \
   --playpal "$IWAD" --out "$WADS/weapon_pickups.wad"
 
-echo "== 4b. first-person weapons (voxel guns) and the rest of the alien enemies"
+echo "== 4b. optional voxel first-person weapons, and the rest of the alien enemies"
+# Not loaded by default: Freedoom's own first-person guns are kept. Load weapon_view_voxel.wad to swap them.
 PYTHONPATH="$HERE" python3 -s "$HERE/build_weapon_view.py" --sprites "$TS" --freedoom "$SPR" --buildcfg "$CFG" --playpal "$IWAD" \
-  --out "$WADS/weapon_view.wad"
+  --out "$WADS/weapon_view_voxel.wad"
 bash "$HERE/build_aliens.sh" "$TGMC" "$FD" "$IWAD" "$OUT"
 
 echo "== 4c. five SOM looks per slot with a random spawner (GZDoom/UZDoom only)"
@@ -98,6 +99,14 @@ $PY "$HERE/build_sounds.py" --max-seconds 1.2 --out "$WADS/voice_sounds.wad" --r
   DSBGSIT1="$V/alien/hiss1.ogg" DSBGSIT2="$V/alien/hiss2.ogg" DSBGACT="$V/alien/growl1.ogg" \
   DSBGDTH1="$V/alien/death.ogg" DSBGDTH2="$V/alien/death2.ogg" \
   DSCLAW="$V/alien/pounce.ogg" DSFIRSHT="$V/alien/spitacid.ogg" DSDMPAIN="$V/alien/growl2.ogg"
+
+# Reload and pickup sounds replace Doom's slots; the marine player class adds TGMC footsteps (GZDoom/UZDoom only).
+I="$TGMC/sound/weapons/guns/interact"; F="$TGMC/sound/effects/footstep"
+$PY "$HERE/build_sounds.py" --max-seconds 1.0 --peak 110 --out "$WADS/extra_sounds.wad" --map \
+  DSSGCOCK="$I/shotgun_pump.ogg" DSDBOPN="$I/shotgun_open.ogg" DSDBLOAD="$I/shotgun_db_insert.ogg" \
+  DSDBCLS="$I/martini_cocked.ogg" DSWPNUP="$I/cocked.ogg" \
+  DSSTEP1="$F/floor1.ogg" DSSTEP2="$F/floor2.ogg" DSSTEP3="$F/floor3.ogg" DSSTEP4="$F/floor4.ogg" DSSTEP5="$F/floor5.ogg" \
+  --raw DECORATE="$HERE/marine_steps.decorate" SNDINFO="$HERE/marine_steps.sndinfo" MAPINFO="$HERE/marine_steps.mapinfo"
 
 echo "== done: WADs in $WADS"
 ls -1 "$WADS"

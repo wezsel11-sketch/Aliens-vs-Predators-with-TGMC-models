@@ -23,8 +23,8 @@ material.
 Extracts the TGMC sheets, composites the humanoids, and builds every PWAD into
 `<out-dir>/wads/`: the five actor sets (`xeno_troo`, `marine_player`,
 `som_trooper`, `som_heavy`, `spitter_chaingunner`), `green_fireball`,
-`ammo_pickups`, `weapon_pickups`, `weapon_view`, the eleven `alien_*` enemy sets, `som_variants`, and the sound sets (`gun_sounds`,
-`voice_sounds`). The steps below are what it runs.
+`ammo_pickups`, `weapon_pickups`, the eleven `alien_*` enemy sets, `som_variants`, the sound sets (`gun_sounds`,
+`voice_sounds`, `extra_sounds`), and the optional `weapon_view_voxel`. The steps below are what it runs.
 
 Actor mapping: player = TGMC marine; imp (`TROO`) = Spitter (its fireballs are
 recolored green, `green_fireball.wad`); zombieman (`POSS`) = SOM trooper with
@@ -84,9 +84,11 @@ monster).
    and CSAW with TGMC gun art (CSAW uses the powered axe; TGMC has no chainsaw).
    Both scale from the Freedoom pickup and anchor with `buildcfg.txt` offsets.
 
-6. **Not included: first-person weapon views.** TGMC has only side-view gun art;
-   rotating it upright produced thin sticks that did not read as weapons, so
-   Freedoom's own first-person sprites are kept.
+6. **First-person weapons: Freedoom's by default.** TGMC has only small side-view gun
+   art, with nothing showing a gun from behind. Several attempts to build the rear view
+   (rotated icons, voxel models, ray-marched smooth models, and a Blender/Cycles test
+   that was not committed) read worse at Doom's 320x200 than Freedoom's hand-drawn guns,
+   so those are kept. The voxel guns are an optional WAD (see below).
 
 ## Testing
 
@@ -123,14 +125,19 @@ running them in `dsda-doom`.
   The script writes sprite sets `SOMA`..`SOME` and `SOSA`..`SOSE`, one DECORATE actor per look, and a
   `RandomSpawner` that replaces `ZombieMan` / `ShotgunGuy`, so each spawn picks a look at random. Output:
   `wads/som_variants.wad`. Load it instead of `som_trooper.wad` / `som_heavy.wad`.
-- **First-person weapons** (`build_weapon_view.py`, `gun_models.py`): each weapon is a small hand-built 3D model
-  (rounded boxes, tubes and capsule forearms with gloves), ray-marched as a signed distance field from behind and
-  above so the gun points straight ahead at the bottom centre of the screen, like classic Doom. The TGMC side-view
-  icon is projected onto the model as its texture (colours, markings, accents), but from behind most of a gun's side is
-  not visible, so these are TGMC-coloured guns and not TGMC-looking guns. Every Freedoom weapon frame gets the rest pose
-  kicked back and up by a per-frame recoil amount (`RECOIL`), and the muzzle flashes (PISF, SHTF, CHGF, MISF, PLSF,
-  BFGF) are drawn procedurally: yellow for guns, a fireball for rockets, cyan for plasma, green for the BFG.
-  Needs numpy. The SH-35 shotgun (`t35`) and MG-60 machine gun (`t60`) are the first-person shotgun and chaingun.
+- **Optional voxel first-person weapons** (`build_weapon_view.py`, `gun_models.py`, `voxel_gun.py`, output
+  `weapon_view_voxel.wad`, not loaded by default): each weapon is a small hand-built voxel model (stock, receiver,
+  barrel, magazine, sights, gloved forearms) sized after the TGMC icons and coloured like them, rendered from
+  behind and above so the gun points straight ahead at the bottom centre of the screen. The SH-35 shotgun and MG-60
+  machine gun are the shotgun and chaingun. Every Freedoom weapon frame gets the rest pose kicked back and up by a
+  per-frame recoil amount (`RECOIL`), and the muzzle flashes (PISF, SHTF, CHGF, MISF, PLSF, BFGF) are drawn
+  procedurally: yellow for guns, a fireball for rockets, cyan for plasma, green for the BFG.
+- **Reloads and footsteps** (`extra_sounds.wad`, built with `build_sounds.py --peak 110`, which normalizes the quiet
+  TGMC files): the shotgun pump (`DSSGCOCK`), the super shotgun's open, load and close (`DSDBOPN`, `DSDBLOAD`,
+  `DSDBCLS`) and the weapon pickup (`DSWPNUP`) use TGMC gun-handling sounds. For GZDoom/UZDoom, the WAD also has a
+  `TGMCMarine` player class (`marine_steps.decorate`) whose walking frames play a random TGMC floor footstep
+  (`marine_steps.sndinfo`), made the default class by `marine_steps.mapinfo`. Other engines ignore those lumps and
+  still get the reload sounds.
 - **Alien attacks** (`build_alien_attacks.py`, **GZDoom/UZDoom only**): the Spitter chaingunner, Queen (spiderdemon),
   Widow (arachnotron) and Dragon (cyberdemon) fire green acid instead of bullets, plasma and rockets, via DECORATE
   replacements; the cacodemon, mancubus and revenant projectiles are recoloured green.

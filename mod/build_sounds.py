@@ -6,9 +6,11 @@ Doom's DMX sound lump: u16 format (3), u16 rate (11025), u32 sample count, then
   --map NAME=ogg_path [NAME=ogg_path ...]   e.g. DSPISTOL=.../pistol.ogg
   --raw NAME=file [NAME=file ...]            add raw lumps, e.g. DEHACKED=sound_slots.deh
   --max-seconds N                            trim long tails (default 2.0)
+  --peak N                                   scale each sound so its loudest sample is N of 127 (quiet TGMC files)
   --out FILE.wad
 """
 import argparse
+import array
 import os
 import struct
 import subprocess
@@ -27,6 +29,15 @@ def ogg_to_u8(path, max_seconds):
     return subprocess.run(cmd, check=True, capture_output=True).stdout
 
 
+def ogg_to_u8_normalized(path, max_seconds, peak):
+    """Decode as float, scale so the loudest sample hits `peak` (of 127), then convert to 8-bit."""
+    cmd = ["ffmpeg", "-v", "error", "-i", path, "-t", str(max_seconds),
+           "-ac", "1", "-ar", str(RATE), "-f", "f32le", "-"]
+    pcm = array.array("f", subprocess.run(cmd, check=True, capture_output=True).stdout)
+    gain = peak / 127 / max(max(abs(v) for v in pcm), 1e-6)
+    return bytes(max(0, min(255, round(128 + v * gain * 127))) for v in pcm)
+
+
 def ds_lump(samples):
     pad = bytes([0x80]) * PAD
     body = pad + samples + pad
@@ -38,13 +49,17 @@ def main():
     ap.add_argument("--map", nargs="+", required=True)
     ap.add_argument("--raw", nargs="*", default=[], help="NAME=file: add a file as a raw lump (e.g. DEHACKED)")
     ap.add_argument("--max-seconds", type=float, default=2.0)
+    ap.add_argument("--peak", type=int, help="normalize each sound to this peak (1-127)")
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
 
     lumps = []
     for item in args.map:
         name, path = item.split("=", 1)
-        samples = ogg_to_u8(path, args.max_seconds)
+        if args.peak:
+            samples = ogg_to_u8_normalized(path, args.max_seconds, args.peak)
+        else:
+            samples = ogg_to_u8(path, args.max_seconds)
         lumps.append((name.upper(), ds_lump(samples)))
         print(f"{name.upper()}: {len(samples)} samples (~{len(samples) / RATE:.2f}s) from {os.path.basename(path)}")
     for item in args.raw:

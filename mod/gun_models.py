@@ -1,13 +1,14 @@
-"""Hand-built 3D models of the weapons, rendered straight ahead like classic Doom's first-person guns.
+"""Hand-built voxel models of the weapons, rendered straight ahead like classic Doom's first-person guns.
 
-Each model is a handful of rounded boxes and tubes (stock, receiver, barrel, magazine, sights, grip) sized after the
+Each model is a handful of boxes and tubes (stock, receiver, barrel, magazine, sights, grip) sized after the
 TGMC side-view icons. Axes: X forward (rear of the stock at 0), Y up, Z right. One unit is one voxel.
-Rendering ray-marches the signed distance field from a pinhole camera behind and above the gun, centred.
+Rendering reuses voxel_gun.draw_voxels (pinhole camera behind and above the gun, centred).
 """
 import math
 
-import numpy as np
 from PIL import Image
+
+import voxel_gun as vg
 
 STEEL = (96, 102, 110)
 DARK_STEEL = (52, 56, 62)
@@ -22,223 +23,64 @@ OLIVE = (88, 92, 62)
 RED = (190, 40, 36)
 WHITE = (214, 210, 196)
 CYAN = (90, 220, 230)
-GLOVE = (54, 54, 60)
-SLEEVE = (52, 58, 46)
+GLOVE = (30, 30, 34)
+SLEEVE = (40, 44, 38)
 SLEEVE_HI = (64, 68, 56)
 
 
+K = 2  # model resolution: voxels per modelling unit (finer voxels = smoother curves)
+
+
 class Model:
-    """A gun as a union of smooth primitives, rendered by ray-marching signed distance fields.
-
-    Units are modelling units (about one voxel of the old voxel models). X forward, Y up, Z right.
-    """
-
     def __init__(self):
-        self.prims = []      # (kind, params, color, is_gun)
-        self.arm_mode = False
-        self.texture = None  # (rgb array, alpha array): the TGMC side-view icon, projected onto the gun
+        self.vox = {}
 
-    def box(self, x0, x1, y0, y1, z0, z1, color, round_=0.55):
-        """Rounded box covering [x0, x1+1] x [y0, y1+1] x [z0, z1+1]."""
-        c = ((x0 + x1 + 1) / 2, (y0 + y1 + 1) / 2, (z0 + z1 + 1) / 2)
-        h = ((x1 - x0 + 1) / 2, (y1 - y0 + 1) / 2, (z1 - z0 + 1) / 2)
-        r = min(round_, min(h) * 0.9)
-        self.prims.append(("box", (c, h, r), color, not self.arm_mode))
+    def box(self, x0, x1, y0, y1, z0, z1, color):
+        for x in range(int(round(x0 * K)), int(round((x1 + 1) * K))):
+            for y in range(int(round(y0 * K)), int(round((y1 + 1) * K))):
+                for z in range(int(round(z0 * K)), int(round((z1 + 1) * K))):
+                    self.vox[(x, y, z)] = color
 
     def tube(self, x0, x1, cy, cz, r, color):
-        """Cylinder along X with radius r around (cy, cz), slightly rounded at the ends."""
-        self.prims.append(("cyl", (x0, x1 + 1, cy + 0.5, cz + 0.5, r), color, not self.arm_mode))
-
-    def capsule(self, a, b, r, color):
-        self.prims.append(("cap", (a, b, r), color, not self.arm_mode))
+        """Cylinder along X with radius r (in voxels) around (cy, cz)."""
+        cy, cz, r = cy * K, cz * K, r * K
+        ri = int(math.ceil(r))
+        for x in range(int(round(x0 * K)), int(round((x1 + 1) * K))):
+            for y in range(int(math.floor(cy - ri)), int(math.ceil(cy + ri)) + 1):
+                for z in range(int(math.floor(cz - ri)), int(math.ceil(cz + ri)) + 1):
+                    if (y - cy) ** 2 + (z - cz) ** 2 <= r * r:
+                        self.vox[(x, y, z)] = color
 
     def arms(self, grip_x, grip_y, fore_x, fore_y, fore_z=0):
-        """Gloved hands on the grip and fore-end with sleeved forearms coming in from the lower corners."""
-        gun = True  # (kept for the old call signature)
-        self.arm_mode = True
-        # right hand and forearm (to the lower right, toward the camera)
-        self.box(grip_x - 2, grip_x + 2, grip_y - 3, grip_y + 1, 1, 5, GLOVE, round_=1.0)
-        self.capsule((grip_x - 3, grip_y - 3.5, 5.0), (grip_x - 17, grip_y - 11, 18), 2.5, SLEEVE)
-        self.capsule((grip_x - 1, grip_y - 2, 3.5), (grip_x - 5, grip_y - 4, 6.5), 2.8, GLOVE)
-        # left hand and forearm (to the lower left)
-        self.box(fore_x - 2, fore_x + 2, fore_y - 3, fore_y + 1, fore_z - 6, fore_z - 2, GLOVE, round_=1.0)
-        self.capsule((fore_x - 3, fore_y - 3.5, fore_z - 5.0), (fore_x - 17, fore_y - 11, fore_z - 18), 2.5, SLEEVE)
-        self.capsule((fore_x - 1, fore_y - 2, fore_z - 3.5), (fore_x - 5, fore_y - 4, fore_z - 6.5), 2.8, GLOVE)
-        self.arm_mode = False
+        """Right hand on the grip and left hand on the fore-end; short, thick forearms come in from the lower corners."""
+        gun = set(self.vox)
+        self.box(grip_x - 2, grip_x + 3, grip_y - 3, grip_y + 2, 1, 5, GLOVE)                    # right hand
+        self.box(fore_x - 2, fore_x + 3, fore_y - 3, fore_y + 1, fore_z - 5, fore_z - 1, GLOVE)  # left hand
+        for i in range(1, 7):
+            col = SLEEVE_HI if i == 3 else SLEEVE
+            self.box(grip_x - 3 - i * 1.4, grip_x + 1 - i * 1.4, grip_y - 3 - i * 0.7, grip_y + 3 - i * 0.7,
+                     2 + i * 1.3, 8 + i * 1.3, GLOVE if i < 2 else col)
+            self.box(fore_x - 3 - i * 1.4, fore_x + 1 - i * 1.4, fore_y - 3 - i * 0.7, fore_y + 3 - i * 0.7,
+                     fore_z - 8 - i * 1.3, fore_z - 2 - i * 1.3, GLOVE if i < 2 else col)
         return gun
 
-    def render(self, gun_keys=None, size=(150, 100), length=60.0, back=0, up=0, fit=None, ss=2):
-        return sdf_render(self, size, length, back, up, fit, ss)
+    def shifted(self, back=0, up=0):
+        """A copy of the voxels moved toward the camera and up (recoil)."""
+        b, u = int(round(back * K)), int(round(up * K))
+        return {(x - b, y + u, z): c for (x, y, z), c in self.vox.items()}
 
-
-# --------------------------------------------------------------------------- ray-marching renderer
-
-def _sd_box(P, c, h, r):
-    q = np.abs(P - np.array(c)) - np.array(h) + r
-    return np.linalg.norm(np.maximum(q, 0.0), axis=1) + np.minimum(np.max(q, axis=1), 0.0) - r
-
-
-def _sd_cyl_x(P, x0, x1, cy, cz, R):
-    xc, hl = (x0 + x1) / 2.0, (x1 - x0) / 2.0
-    dx = np.abs(P[:, 0] - xc) - hl
-    dr = np.hypot(P[:, 1] - cy, P[:, 2] - cz) - R
-    return np.minimum(np.maximum(dx, dr), 0.0) + np.hypot(np.maximum(dx, 0.0), np.maximum(dr, 0.0))
-
-
-def _sd_capsule(P, a, b, r):
-    a, b = np.array(a, float), np.array(b, float)
-    ab = b - a
-    t = np.clip(((P - a) @ ab) / (ab @ ab), 0.0, 1.0)
-    return np.linalg.norm(P - (a + t[:, None] * ab), axis=1) - r
-
-
-def _prim_dist(prim, P):
-    kind, params = prim[0], prim[1]
-    if kind == "box":
-        return _sd_box(P, *params)
-    if kind == "cyl":
-        return _sd_cyl_x(P, *params)
-    return _sd_capsule(P, *params)
-
-
-def _scene(prims, P, offset):
-    """Distance to the nearest primitive and the index of that primitive. `offset` moves the whole model."""
-    Q = P - offset
-    best = np.full(len(P), 1e9)
-    idx = np.zeros(len(P), dtype=int)
-    for i, prim in enumerate(prims):
-        d = _prim_dist(prim, Q)
-        closer = d < best
-        best = np.where(closer, d, best)
-        idx = np.where(closer, i, idx)
-    return best, idx
-
-
-def _bbox_corners(prim):
-    kind, p = prim[0], prim[1]
-    if kind == "box":
-        (cx, cy, cz), (hx, hy, hz), _ = p
-        lo, hi = (cx - hx, cy - hy, cz - hz), (cx + hx, cy + hy, cz + hz)
-    elif kind == "cyl":
-        x0, x1, cy, cz, r = p
-        lo, hi = (x0, cy - r, cz - r), (x1, cy + r, cz + r)
-    else:
-        a, b, r = p
-        lo = tuple(min(a[i], b[i]) - r for i in range(3))
-        hi = tuple(max(a[i], b[i]) + r for i in range(3))
-    return [(x, y, z) for x in (lo[0], hi[0]) for y in (lo[1], hi[1]) for z in (lo[2], hi[2])]
-
-
-SHININESS = {STEEL: 40.0, DARK_STEEL: 24.0, GUNMETAL: 28.0}
-
-
-def sdf_render(model, size, length, back, up, fit, ss):
-    """Ray-march the model from behind and above. Returns (RGBA image, fit) like the voxel renderer did."""
-    sw, sh = size
-    cam = np.array((-length * 0.95, length * 0.62, 0.0))
-    target = np.array((length * 0.55, 0.0, 0.0))
-    fwd = target - cam
-    fwd /= np.linalg.norm(fwd)
-    right = np.cross(fwd, (0.0, 1.0, 0.0))
-    right /= np.linalg.norm(right)
-    upv = np.cross(right, fwd)
-    prims = model.prims
-    offset = np.array((-float(back), float(up), 0.0))
-
-    if fit is None:
-        xs, ys = [], []
-        for prim in prims:
-            if not prim[3]:
-                continue
-            for corner in _bbox_corners(prim):
-                rel = np.array(corner) - cam
-                dc = rel @ fwd
-                xs.append((rel @ right) / dc)
-                ys.append((rel @ upv) / dc)
-        scale = min(sw * 0.9 / (max(xs) - min(xs)), sh * 0.78 / (max(ys) - min(ys)))
-        fit = (scale, (max(xs) + min(xs)) / 2, min(ys))
-    scale, cx_mid, y_min = fit
-    gun_pts = np.array([c for prim in prims if prim[3] for c in _bbox_corners(prim)])
-    gx0, gx1 = gun_pts[:, 0].min(), gun_pts[:, 0].max()
-    gy0, gy1 = gun_pts[:, 1].min(), gun_pts[:, 1].max()
-
-    W, H = sw * ss, sh * ss
-    gx, gy = np.meshgrid((np.arange(W) + 0.5) / ss, (np.arange(H) + 0.5) / ss)
-    px_ = (gx - sw / 2) / scale + cx_mid
-    py_ = (sh * 0.76 - gy) / scale + y_min
-    dirs = fwd + px_[..., None] * right + py_[..., None] * upv
-    dirs = dirs.reshape(-1, 3)
-    dirs /= np.linalg.norm(dirs, axis=1, keepdims=True)
-
-    n = len(dirs)
-    t = np.full(n, length * 0.45)           # start close to the model
-    alive = np.ones(n, dtype=bool)
-    hit = np.zeros(n, dtype=bool)
-    tmax = length * 2.2
-    for _ in range(90):
-        idx = np.nonzero(alive)[0]
-        if idx.size == 0:
-            break
-        P = cam + dirs[idx] * t[idx, None]
-        d, _m = _scene(prims, P, offset)
-        got = d < 0.02
-        hit[idx[got]] = True
-        alive[idx[got]] = False
-        t[idx] += np.where(got, 0.0, d)
-        alive[idx[t[idx] > tmax]] = False
-
-    rgb = np.zeros((n, 3))
-    hi = np.nonzero(hit)[0]
-    if hi.size:
-        P = cam + dirs[hi] * t[hi, None]
-        d0, mat = _scene(prims, P, offset)
-        eps = 0.05
-        grad = np.zeros((hi.size, 3))
-        for k in range(3):
-            e = np.zeros(3)
-            e[k] = eps
-            dp, _a = _scene(prims, P + e, offset)
-            dm, _b = _scene(prims, P - e, offset)
-            grad[:, k] = dp - dm
-        normal = grad / np.maximum(np.linalg.norm(grad, axis=1, keepdims=True), 1e-9)
-        light = np.array((-0.35, 0.85, -0.40)); light /= np.linalg.norm(light)
-        view = -dirs[hi]
-        half = light + view; half /= np.linalg.norm(half, axis=1, keepdims=True)
-        diffuse = np.clip(normal @ light, 0.0, 1.0)
-        # ambient occlusion: how much free space there is just above the surface
-        ao_d, _c = _scene(prims, P + normal * 0.9, offset)
-        ao = np.clip(ao_d / 0.9, 0.35, 1.0)
-        rim = np.clip(1.0 - np.sum(normal * view, axis=1), 0.0, 1.0) ** 3 * 0.18
-        base = np.array([prims[i][2] for i in mat], float)
-        if model.texture is not None:
-            # Project the TGMC icon along Z onto the gun (arms keep their own colours).
-            trgb, ta = model.texture
-            Q = P - offset
-            u = np.clip((Q[:, 0] - gx0) / (gx1 - gx0), 0.0, 1.0)
-            v = np.clip((gy1 - Q[:, 1]) / (gy1 - gy0), 0.0, 1.0)
-            ix = (u * (trgb.shape[1] - 1)).astype(int)
-            iy = (v * (trgb.shape[0] - 1)).astype(int)
-            tex = trgb[iy, ix].astype(float)
-            use = np.array([prims[i][3] for i in mat]) & (ta[iy, ix] >= 128)
-            base = np.where(use[:, None], 0.30 * base + 0.70 * tex, base)
-        shin = np.array([SHININESS.get(prims[i][2], 10.0) for i in mat])
-        spec = np.clip(np.sum(normal * half, axis=1), 0.0, 1.0) ** shin
-        spec_amt = np.where(shin > 20, 0.55, 0.12)
-        lit = (0.42 + 0.78 * diffuse) * ao + rim
-        rgb[hi] = np.clip(base * lit[:, None] + 255 * (spec * spec_amt * ao)[:, None], 0, 255)
-    # gamma lift (TGMC-style guns are dark; Doom's floors are dark too)
-    rgb = 255.0 * (rgb / 255.0) ** 0.82
-
-    cov = hit.reshape(H, W).astype(float)
-    img = rgb.reshape(H, W, 3)
-    cov_s = cov.reshape(sh, ss, sw, ss).sum(axis=(1, 3))
-    col_s = (img * cov[..., None]).reshape(sh, ss, sw, ss, 3).sum(axis=(1, 3))
-    out = np.zeros((sh, sw, 4), dtype=np.uint8)
-    opaque = cov_s >= (ss * ss) / 2.0
-    avg = col_s / np.maximum(cov_s[..., None], 1.0)
-    out[..., :3] = np.clip(avg, 0, 255).astype(np.uint8)
-    out[..., 3] = np.where(opaque, 255, 0)
-    return Image.fromarray(out, "RGBA"), fit
+    def render(self, gun_keys, size=(150, 100), length=60.0, back=0, up=0, fit=None):
+        """Render the model (optionally kicked back/up by some voxels). Returns (image, fit)."""
+        length = length * K
+        cam = (-length * 0.95, length * 0.62, 0.0)
+        target = (length * 0.55, 0.0, 0.0)
+        if back or up:
+            vox = self.shifted(back, up)
+            b, u = int(round(back * K)), int(round(up * K))
+            keys = {(x - b, y + u, z) for (x, y, z) in gun_keys}
+        else:
+            vox, keys = self.vox, gun_keys
+        return vg.draw_voxels_smooth(vox, keys, cam, target, size, margin=0.9, gun_height_frac=0.78, fit=fit, return_fit=True)
 
 
 # --------------------------------------------------------------------------- models
@@ -378,35 +220,8 @@ MODELS = {
 }
 
 
-TEXTURE_ROOT = None   # directory of extracted TGMC sheets (tgmc_sprites); set by build_weapon_view.py
-TEXTURE_ICONS = {
-    "PISG": ("pistols", "m1911"), "SHTG": ("shotguns64", "t35"), "SHT2": ("shotguns", "dshotgun"),
-    "CHGG": ("machineguns64", "t60"), "MISG": ("special64", "rpg"), "PLSG": ("plasma64", "plasma_rifle"),
-    "BFGG": ("plasma64", "plasma_cannon"), "SAWG": ("twohanded", "auto_axe_on"),
-}
-
-
-def load_texture(prefix):
-    """The TGMC side-view icon for this weapon, cropped, as (rgb array, alpha array); None if unavailable."""
-    if not TEXTURE_ROOT:
-        return None
-    import json
-    import os
-    sheet, state = TEXTURE_ICONS[prefix]
-    try:
-        m = json.load(open(os.path.join(TEXTURE_ROOT, sheet, "manifest.json")))
-        hit = [x for x in m["states"] if x["name"] == state][0]
-        img = Image.open(os.path.join(TEXTURE_ROOT, sheet, hit["files"][0])).convert("RGBA")
-    except (OSError, IndexError, KeyError):
-        return None
-    img = img.crop(img.getchannel("A").getbbox())
-    arr = np.array(img)
-    return arr[..., :3], arr[..., 3]
-
-
 def render_weapon(prefix, size=(150, 100), back=0, up=0, fit=None):
     model, gun_keys, length = MODELS[prefix]()
-    model.texture = load_texture(prefix)
     return model.render(gun_keys, size=size, length=length, back=back, up=up, fit=fit)
 
 

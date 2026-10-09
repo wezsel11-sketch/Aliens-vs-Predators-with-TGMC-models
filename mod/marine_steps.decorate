@@ -1,0 +1,15 @@
+// The player is a TGMC marine whose boots make TGMC footstep sounds while walking (GZDoom/UZDoom only).
+// MAPINFO's GameInfo makes this the player class; the sprites stay PLAY*, replaced by marine_player.wad.
+ACTOR TGMCMarine : DoomPlayer
+{
+  Player.DisplayName "Marine"
+  States
+  {
+  See:
+    PLAY A 4 A_StartSound("marine/step", CHAN_AUTO, 0, 0.45)
+    PLAY B 4
+    PLAY C 4 A_StartSound("marine/step", CHAN_AUTO, 0, 0.45)
+    PLAY D 4
+    Loop
+  }
+}

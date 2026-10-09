@@ -1,4 +1,7 @@
-"""Replace Freedoom's first-person weapons and muzzle flashes with hand-built voxel guns.
+"""Optional: replace Freedoom's first-person weapons and muzzle flashes with hand-built voxel guns.
+
+The default mod keeps Freedoom's own first-person guns (hand-drawn, they read better at Doom's resolution);
+this builds weapon_view_voxel.wad for players who want TGMC-coloured guns instead.
 
 The guns are modelled in gun_models.py (stock, receiver, barrel, magazine, sights, grip; sized after the TGMC
 icons) and rendered straight ahead from behind and above, with a gloved forearm in each lower corner. Every

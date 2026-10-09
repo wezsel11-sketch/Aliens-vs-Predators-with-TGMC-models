@@ -5,3 +5,9 @@ marine/step3 DSSTEP3
 marine/step4 DSSTEP4
 marine/step5 DSSTEP5
 $random marine/step { marine/step1 marine/step2 marine/step3 marine/step4 marine/step5 }
+
+// Pickup sounds by item type (GZDoom splits Doom's single DSITEMUP into these)
+misc/health_pkup DSHYPO
+misc/armor_pkup DSARMPK
+misc/ammo_pkup DSAMMPK
+misc/k_pkup DSKEYPK

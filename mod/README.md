@@ -23,8 +23,8 @@ material.
 Extracts the TGMC sheets, composites the humanoids, and builds every PWAD into
 `<out-dir>/wads/`: the five actor sets (`xeno_troo`, `marine_player`,
 `som_trooper`, `som_heavy`, `spitter_chaingunner`), `green_fireball`,
-`ammo_pickups`, `weapon_pickups`, `item_pickups`, the eleven `alien_*` enemy sets, `som_variants`, the sound sets (`gun_sounds`,
-`voice_sounds`, `extra_sounds`), `music`, and the optional `weapon_view_voxel`. The steps below are what it runs.
+`ammo_pickups`, `weapon_pickups`, `item_pickups`, the twelve `alien_*` enemy sets, `som_variants`, the sound sets (`gun_sounds`,
+`heavy_gun_sounds`, `voice_sounds`, `alien_sounds`, `extra_sounds`), `music`, and the optional `weapon_view_voxel`. The steps below are what it runs.
 
 Actor mapping: player = TGMC marine; imp (`TROO`) = Spitter (its fireballs are
 recolored green, `green_fireball.wad`); zombieman (`POSS`) = SOM trooper with
@@ -120,12 +120,15 @@ running them in `dsda-doom`.
 ## More enemies, SOM variants, first-person weapons
 
 - **Alien enemies** (`build_aliens.sh`): the rest of Doom's monsters become TGMC xeno castes, one WAD each:
-  Pinky/Spectre = Runner, Lost Soul = Larva, Cacodemon = Shrike, Baron = Crusher,
+  Pinky/Spectre = Runner, Lost Soul = facehugger, Cacodemon = Shrike, Baron = Crusher,
   Hell Knight = Warrior, Revenant = Hunter, Mancubus = Boiler, Arachnotron = Widow,
-  Pain Elemental = Carrier, Cyberdemon = Dragon, Spiderdemon = Queen. Every rotating frame
-  (walk, attack, pain) uses the caste's 4-direction walk art, and the single-rotation frames
-  (death, explosion) use its "Dead" image, via `build_sprites.py --auto-frames`. Archvile is not replaced
-  (its frames hold fire effects). Projectiles other than the imp's fireball keep Freedoom's art.
+  Pain Elemental = Carrier, Cyberdemon = Dragon, Spiderdemon = Queen, Archvile = Praetorian. Every rotating
+  frame (walk, attack, pain) uses the caste's 4-direction walk art, and the single-rotation frames
+  (death, explosion) use its "Dead" image, via `build_sprites.py --auto-frames`. Frames that Freedoom stores in
+  a shared picture (`skela1d1.png` holds frames A and D) are all found. The Archvile's attack, pain and resurrect
+  frames are single-rotation too, so `--front-frames` gives them the living front view instead of the corpse; its
+  flame is recoloured green (an acid burst). Freedoom's file names write the frame after `[` as `^`; the lump is
+  named with `\` as Doom expects.
 - **SOM variants** (`build_som_variants.py`, **GZDoom/UZDoom only**): five looks (light, medium, heavy,
   leader, officer) for both the zombieman and shotgun guy slots, each with its own armor and weapon.
   The script writes sprite sets `SOMA`..`SOME` and `SOSA`..`SOSE`, one DECORATE actor per look, and a
@@ -142,11 +145,24 @@ running them in `dsda-doom`.
   TGMC files): the shotgun pump (`DSSGCOCK`), the super shotgun's open, load and close (`DSDBOPN`, `DSDBLOAD`,
   `DSDBCLS`) and the weapon pickup (`DSWPNUP`) use TGMC gun-handling sounds. For GZDoom/UZDoom, the WAD also has a
   `TGMCMarine` player class (`marine_steps.decorate`) whose walking frames play a random TGMC floor footstep
-  (`marine_steps.sndinfo`), made the default class by `marine_steps.mapinfo`. Other engines ignore those lumps and
-  still get the reload sounds.
+  (`extra_sounds.sndinfo`), made the default class by `marine_steps.mapinfo`. Other engines ignore those lumps and
+  still get the reload sounds. The same WAD has TGMC doors, blast doors, lifts, switches, the locked-door buzz,
+  teleport, and the marine's pain, death and gib screams; in GZDoom, SNDINFO splits Doom's single pickup sound
+  into a hypospray for health, armor clicks for armor, a magazine for ammo and a beep for keys.
+- **Heavy guns and alien voices**: `heavy_gun_sounds.wad` gives the rocket launcher, plasma rifle, BFG, super
+  shotgun, chainsaw (the power axe pickup) and fist TGMC sounds. `alien_sounds.wad` gives every other monster
+  caste-fitting TGMC roars, hisses, drools, claw and bite sounds and death screams (the Queen's screech, the King's
+  roar for the Dragon, heavy alien footsteps for the Dragon and Queen), and the facehugger its leap and death sound.
+- **Pickups and decorations** (`build_item_pickups.py`): besides armor and health, berserk = TGMC "bezerk" kit,
+  soulsphere and megasphere = advanced and O2 first-aid kits, backpack = marine backpack, light amp = night-vision
+  goggles, computer map = tablet, radiation suit = TGMC rad suit, invulnerability = bomb suit, invisibility = xeno
+  costume, keys = the silver ID card tinted blue, red or yellow, shell/rocket boxes and cells = TGMC buckshot box,
+  quad rockets, plasma cell and powerpack. The impaled-body and skull decorations (`POL1`-`POL6`) become xeno eggs,
+  a burst egg and a resin pod.
 - **Alien attacks** (`build_alien_attacks.py`, **GZDoom/UZDoom only**): the Spitter chaingunner, Queen (spiderdemon),
   Widow (arachnotron) and Dragon (cyberdemon) fire green acid instead of bullets, plasma and rockets, via DECORATE
-  replacements; the cacodemon, mancubus and revenant projectiles are recoloured green.
+  replacements; the cacodemon, mancubus and revenant projectiles are recoloured green. Every alien bleeds green
+  acid (`BloodColor`); this script owns all the alien DECORATE replacements, so no two WADs replace the same class.
 - **SOM energy weapons** (`build_som_variants.py`): each SOM look fires with its own TGMC laser or plasma sound
   through a custom bullet attack (`A_CustomBulletAttack` + `SNDINFO`), so the player's guns keep the normal sounds.
 - **Sizes**: `build_sprites.py --scale` sizes the living sprite (the Runner is 0.85) and `--death-scale` the death

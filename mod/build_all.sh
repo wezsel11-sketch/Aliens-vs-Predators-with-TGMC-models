@@ -37,10 +37,14 @@ echo "== 1. extract TGMC sheets"
   icons/mob/inhands/guns/rifles_right_1.dmi icons/mob/inhands/guns/shotguns_right_1.dmi \
   icons/mob/inhands/guns/machineguns_right_64.dmi icons/obj/items/guns/pistols.dmi)
 
-# Item icons live in icons/obj/... and share sheet names with the mob sheets above, so they get their own folder.
+# Item and decoration icons live in icons/obj/... (and icons/Xeno for eggs) and some share sheet names with the mob sheets above, so they get their own folder.
 (cd "$TGMC" && $PY "$HERE/extract_dmi.py" . "$TS/obj_items" \
   icons/obj/clothing/suits/marine_armor.dmi icons/obj/clothing/headwear/marine_helmets.dmi \
-  icons/obj/items/syringe.dmi icons/obj/stack_objects.dmi icons/obj/items/chemistry.dmi)
+  icons/obj/items/syringe.dmi icons/obj/stack_objects.dmi icons/obj/items/chemistry.dmi \
+  icons/obj/items/storage/firstaid.dmi icons/obj/items/storage/backpack.dmi icons/obj/clothing/glasses.dmi \
+  icons/obj/items/pda.dmi icons/obj/clothing/suits/suits.dmi icons/obj/items/card.dmi \
+  icons/obj/items/ammo/box.dmi icons/obj/items/ammo/rocket.dmi icons/obj/items/ammo/energy.dmi \
+  icons/obj/items/ammo/powerpack.dmi icons/Xeno/resin_pod.dmi icons/Xeno/Effects.dmi)
 
 echo "== 2. composite humanoids (S, N, E, W per unit)"
 # compose_units.py reads sheets from tgmc_sprites/ next to itself, so run it from a copy beside them.
@@ -108,13 +112,43 @@ $PY "$HERE/build_sounds.py" --max-seconds 1.2 --out "$WADS/voice_sounds.wad" --r
   DSBGDTH1="$V/alien/death.ogg" DSBGDTH2="$V/alien/death2.ogg" \
   DSCLAW="$V/alien/pounce.ogg" DSFIRSHT="$V/alien/spitacid.ogg" DSDMPAIN="$V/alien/growl2.ogg"
 
-# Reload and pickup sounds replace Doom's slots; the marine player class adds TGMC footsteps (GZDoom/UZDoom only).
-I="$TGMC/sound/weapons/guns/interact"; F="$TGMC/sound/effects/footstep"
+# Reloads, doors, lifts, switches, marine pain and pickup sounds replace Doom's slots; the marine player class
+# adds TGMC footsteps and SNDINFO splits the pickup sound by item type (GZDoom/UZDoom only).
+I="$TGMC/sound/weapons/guns/interact"; F="$TGMC/sound/effects/footstep"; M="$TGMC/sound/machines"; H="$V/human/male"
 $PY "$HERE/build_sounds.py" --max-seconds 1.0 --peak 110 --out "$WADS/extra_sounds.wad" --map \
   DSSGCOCK="$I/shotgun_pump.ogg" DSDBOPN="$I/shotgun_open.ogg" DSDBLOAD="$I/shotgun_db_insert.ogg" \
   DSDBCLS="$I/martini_cocked.ogg" DSWPNUP="$I/cocked.ogg" \
   DSSTEP1="$F/floor1.ogg" DSSTEP2="$F/floor2.ogg" DSSTEP3="$F/floor3.ogg" DSSTEP4="$F/floor4.ogg" DSSTEP5="$F/floor5.ogg" \
-  --raw DECORATE="$HERE/marine_steps.decorate" SNDINFO="$HERE/marine_steps.sndinfo" MAPINFO="$HERE/marine_steps.mapinfo"
+  DSDOROPN="$M/door_open.ogg" DSDORCLS="$M/door_close.ogg" DSBDOPN="$M/blastdoor.ogg" DSBDCLS="$M/blastdoor.ogg" \
+  DSSWTCHN="$M/switch.ogg" DSSWTCHX="$M/terminal_button01.ogg" DSPSTART="$M/elevator_move.ogg" \
+  DSSTNMOV="$M/elevator_move.ogg" DSPSTOP="$M/elevator_openclose.ogg" DSNOWAY="$M/door_locked.ogg" \
+  DSTELEPT="$TGMC/sound/effects/phasein.ogg" \
+  DSPLPAIN="$H/pain_4.ogg" DSPLDETH="$H/scream_5.ogg" DSPDIEHI="$H/gored_1.ogg" DSOOF="$H/gasp1.ogg" \
+  DSHYPO="$TGMC/sound/items/hypospray.ogg" DSARMPK="$TGMC/sound/items/armorlock.ogg" DSAMMPK="$I/m41a_reload.ogg" \
+  DSKEYPK="$M/twobeep.ogg" DSGETPOW="$M/beepalert.ogg" \
+  --raw DECORATE="$HERE/marine_steps.decorate" SNDINFO="$HERE/extra_sounds.sndinfo" MAPINFO="$HERE/marine_steps.mapinfo"
+# The rocket launcher, plasma rifle, BFG, super shotgun, chainsaw (power axe) and fist.
+W="$TGMC/sound/weapons"
+$PY "$HERE/build_sounds.py" --max-seconds 1.5 --peak 115 --out "$WADS/heavy_gun_sounds.wad" --map \
+  DSRLAUNC="$G/rpg_1.ogg" DSPLASMA="$G/plasma_fire_fast.ogg" DSBFG="$G/tank_bfg.ogg" DSDSHTGN="$G/shotgun_heavy.ogg" \
+  DSSAWUP="$W/chainsawstart.ogg" DSSAWIDL="$W/chainsaw_simpson.ogg" DSSAWFUL="$W/chainsawhit.ogg" \
+  DSSAWHIT="$W/chainsawhit.ogg" DSPUNCH="$W/punch1.ogg"
+# Every other monster's voice: each caste gets TGMC roars, hisses and death screams.
+A="$V/alien"; E="$TGMC/sound/effects/alien"
+$PY "$HERE/build_sounds.py" --max-seconds 2.0 --peak 115 --out "$WADS/alien_sounds.wad" --map \
+  DSSGTSIT="$A/roar1.ogg" DSSGTATK="$W/alien_bite1.ogg" DSSGTDTH="$A/death2.ogg" DSDMACT="$A/growl3.ogg" \
+  DSCACSIT="$A/roar5.ogg" DSCACDTH="$A/death.ogg" DSBRSSIT="$A/roar9.ogg" DSBRSDTH="$A/death2.ogg" \
+  DSKNTSIT="$A/roar3.ogg" DSKNTDTH="$A/death.ogg" \
+  DSSKESIT="$A/hiss3.ogg" DSSKEACT="$A/drool1.ogg" DSSKEDTH="$A/death2.ogg" DSSKESWG="$E/tail_swipe1.ogg" \
+  DSSKEPCH="$W/alien_claw_flesh1.ogg" DSSKEATK="$A/spitacid2.ogg" \
+  DSMANSIT="$A/roar11.ogg" DSMANATK="$A/spitacid2.ogg" DSMNPAIN="$A/growl4.ogg" DSMANDTH="$A/death.ogg" \
+  DSBSPSIT="$A/hiss2.ogg" DSBSPACT="$A/drool2.ogg" DSBSPDTH="$A/death2.ogg" DSBSPWLK="$E/footstep_medium1.ogg" \
+  DSPESIT="$A/roar7.ogg" DSPEPAIN="$A/growl4.ogg" DSPEDTH="$A/death.ogg" \
+  DSCYBSIT="$A/king_roar.ogg" DSCYBDTH="$A/king_died.ogg" DSHOOF="$E/footstep_large1.ogg" DSMETAL="$E/footstep_large2.ogg" \
+  DSSPISIT="$A/queen_screech.ogg" DSSPIDTH="$A/queen_died.ogg" \
+  DSVILSIT="$A/roar12.ogg" DSVILACT="$A/hiss1.ogg" DSVIPAIN="$A/growl1.ogg" DSVILDTH="$A/death2.ogg" \
+  DSVILATK="$A/spitacid2.ogg" DSFLAMST="$A/spitacid.ogg" DSFLAME="$TGMC/sound/bullets/acid_impact1.ogg" \
+  DSSKLATK="$A/pounce.ogg" DSHUGDTH="$A/facehugger_dies.ogg" --raw SNDINFO="$HERE/alien_sounds.sndinfo"
 
 echo "== 6. music (GZDoom/UZDoom only)"
 $PY "$HERE/build_music.py" --tgmc "$TGMC" --out "$WADS/music.wad"

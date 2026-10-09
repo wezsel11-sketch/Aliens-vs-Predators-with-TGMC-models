@@ -47,6 +47,11 @@ def frame_rotations(suffix):
     return [(m.group(1).upper(), int(m.group(2))) for m in re.finditer(r"([A-Za-z\[\]\\^])(\d)", suffix)]
 
 
+def lump_frame(frame):
+    """Lump-name spelling of a frame letter: Freedoom's file names write the backslash frame (after Z, [) as ^."""
+    return "\\" if frame == "^" else frame
+
+
 def anchor_for(table, prefix, frame, rot):
     """Freedoom anchor for lump PREFIX+frame+rot, which may be listed under a combined key like TROOA2A8."""
     for key, val in table.items():
@@ -69,9 +74,9 @@ def detect_frames(freedoom_dir, prefix):
     rotating, single = set(), set()
     for path in glob.glob(os.path.join(freedoom_dir, prefix.lower() + "*.png")):
         stem = os.path.splitext(os.path.basename(path))[0][len(prefix):]
-        if not stem:
-            continue
-        (single if stem[1:] == "0" else rotating).add(stem[0].upper())
+        # every frame a file names, so shared pictures like skela1d1.png also yield frame D
+        for frame, rot in frame_rotations(stem):
+            (single if rot == 0 else rotating).add(frame)
     return "".join(sorted(rotating)), "".join(sorted(single))
 
 
@@ -94,6 +99,9 @@ def main():
                     help="use every rotating frame of the prefix as walk/attack, every single-rotation frame as death")
     ap.add_argument("--like", default="", help="take frame layout, sizes and anchors from this Freedoom prefix "
                     "(for new sprite names such as a SOM variant of POSS)")
+    ap.add_argument("--front-frames", default="",
+                    help="single-rotation frames that show the living front view (S), not the corpse: "
+                    "attack and pain frames drawn facing the player, like the Archvile's")
     ap.add_argument("--death-tilt-count", type=int, default=0,
                     help="tip the figure over across this many death frames; the rest stay flat (default: all)")
     ap.add_argument("--scale", type=float, default=1.0,
@@ -106,6 +114,7 @@ def main():
     if args.auto_frames:
         args.frames, args.death_frames = detect_frames(args.freedoom, args.ref)
         args.attack_frames = ""
+        args.death_frames = "".join(f for f in args.death_frames if f not in args.front_frames)
     if not args.frames:
         raise SystemExit("need --frames or --auto-frames")
 
@@ -138,8 +147,13 @@ def main():
             else:
                 art = dl.crop_content(Image.open(args.death_png))
             lumps.append(make_fixed_scale_lump(args, pal, frame, art, living_scale * args.death_scale))
+    if args.front_frames:
+        orig_a1 = Image.open(source_png_for(args.freedoom, args.ref, args.frames[0], 1))
+        living_scale = orig_a1.height / dirs["d0"].height * args.scale
+        for frame in args.front_frames:
+            lumps.append(make_fixed_scale_lump(args, pal, frame, dirs["d0"], living_scale))
     dl.build_wad(lumps, args.out)
-    print(f"wrote {args.out}: {len(lumps)} lumps ({args.prefix} walk {args.frames}, attack {args.attack_frames or '-'}, death {args.death_frames or '-'})")
+    print(f"wrote {args.out}: {len(lumps)} lumps ({args.prefix} walk {args.frames}, attack {args.attack_frames or '-'}, death {args.death_frames or '-'}, front {args.front_frames or '-'})")
 
 
 def make_lump(args, table, pal, frame, rot, art):
@@ -158,14 +172,14 @@ def make_lump(args, table, pal, frame, rot, art):
     art = art.resize((nw, nh), Image.NEAREST)
     new_left = round(left * nw / orig.width)
     new_top = round(top * nh / orig.height)
-    return (f"{args.prefix}{frame}{rot}", dl.encode_patch(nw, nh, dl.to_grid(art, pal), new_left, new_top))
+    return (f"{args.prefix}{lump_frame(frame)}{rot}", dl.encode_patch(nw, nh, dl.to_grid(art, pal), new_left, new_top))
 
 
 def make_fixed_scale_lump(args, pal, frame, art, scale):
     """Scale `art` by a fixed factor and anchor it at the bottom centre (feet on the floor)."""
     nw, nh = max(1, round(art.width * scale)), max(1, round(art.height * scale))
     art = art.resize((nw, nh), Image.NEAREST)
-    return (f"{args.prefix}{frame}0", dl.encode_patch(nw, nh, dl.to_grid(art, pal), nw // 2, nh))
+    return (f"{args.prefix}{lump_frame(frame)}0", dl.encode_patch(nw, nh, dl.to_grid(art, pal), nw // 2, nh))
 
 
 if __name__ == "__main__":

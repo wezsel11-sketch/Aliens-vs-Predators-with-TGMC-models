@@ -5,7 +5,12 @@ Writes a DECORATE lump plus recolored projectile sprites:
   * SpiderMastermind (Queen)    -> rapid acid spit instead of the chaingun
   * Arachnotron (Widow)         -> acid spit instead of plasma
   * Cyberdemon (Dragon)         -> big acid balls instead of rockets
-  * Cacodemon, Mancubus, Revenant projectiles are recolored green (BAL2, MANF, FATB).
+  * Cacodemon, Mancubus, Revenant projectiles are recolored green (BAL2, MANF, FATB), and the
+    Archvile's (Praetorian's) flame is recolored green (FIRE) so it reads as an acid burst.
+  * Every alien bleeds green acid (BloodColor). This file holds all the alien DECORATE replacements,
+    so no other WAD replaces the same class. The Spitter imp and chaingunner also name their xeno
+    sounds here, so they do not depend on the DEHACKED patch reaching a replacement class.
+  * The Lost Soul (facehugger) gets its own death sound (alien/hugger_die, from alien_sounds.wad).
 The imp's fireball (BAL1) is recolored by build_all.sh's green_fireball.wad; the acid reuses those sprites.
 
 usage: build_alien_attacks.py --out OUT_DIR --freedoom FREEDOOM_ROOT --iwad IWAD
@@ -43,6 +48,11 @@ ACTOR DragonAcid : DoomImpBall
 
 ACTOR AlienChaingunner : ChaingunGuy replaces ChaingunGuy
 {
+	BloodColor "30 D0 20"
+	SeeSound "imp/sight"
+	PainSound "demon/pain"
+	DeathSound "imp/death"
+	ActiveSound "imp/active"
 	States
 	{
 	Missile:
@@ -55,6 +65,7 @@ ACTOR AlienChaingunner : ChaingunGuy replaces ChaingunGuy
 
 ACTOR AlienQueen : SpiderMastermind replaces SpiderMastermind
 {
+	BloodColor "30 D0 20"
 	States
 	{
 	Missile:
@@ -68,6 +79,7 @@ ACTOR AlienQueen : SpiderMastermind replaces SpiderMastermind
 
 ACTOR AlienWidow : Arachnotron replaces Arachnotron
 {
+	BloodColor "30 D0 20"
 	States
 	{
 	Missile:
@@ -81,6 +93,7 @@ ACTOR AlienWidow : Arachnotron replaces Arachnotron
 
 ACTOR AlienDragon : Cyberdemon replaces Cyberdemon
 {
+	BloodColor "30 D0 20"
 	States
 	{
 	Missile:
@@ -93,7 +106,23 @@ ACTOR AlienDragon : Cyberdemon replaces Cyberdemon
 		Goto See
 	}
 }
+
+ACTOR AlienSpitter : DoomImp replaces DoomImp
+{
+	BloodColor "30 D0 20"
+	PainSound "demon/pain"
+}
+
+ACTOR AlienHugger : LostSoul replaces LostSoul
+{
+	DeathSound "alien/hugger_die"
+}
 """
+# The other aliens only need acid blood.
+for _cls, _base in [("AlienRunner", "Demon"), ("AlienStalker", "Spectre"), ("AlienShrike", "Cacodemon"),
+                    ("AlienCrusher", "BaronOfHell"), ("AlienWarrior", "HellKnight"), ("AlienHunter", "Revenant"),
+                    ("AlienBoiler", "Fatso"), ("AlienCarrier", "PainElemental"), ("AlienPraetorian", "Archvile")]:
+    DECORATE += f"\nACTOR {_cls} : {_base} replaces {_base}\n{{\n\tBloodColor \"30 D0 20\"\n}}\n"
 
 
 def run(cmd):
@@ -114,7 +143,7 @@ def main():
     py = [sys.executable, "-I"]
 
     parts = []
-    for prefix in ("BAL2", "MANF", "FATB"):
+    for prefix in ("BAL2", "MANF", "FATB", "FIRE"):
         wad = os.path.join(tmp, f"{prefix}.wad")
         run(py + [os.path.join(HERE, "build_recolor.py"), "--freedoom", os.path.join(args.freedoom, "sprites"),
                   "--buildcfg", os.path.join(args.freedoom, "buildcfg.txt"), "--playpal", args.iwad,

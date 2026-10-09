@@ -10,7 +10,8 @@ Writes a DECORATE lump plus recolored projectile sprites:
   * Every alien bleeds green acid (BloodColor). This file holds all the alien DECORATE replacements,
     so no other WAD replaces the same class. The Spitter imp and chaingunner also name their xeno
     sounds here, so they do not depend on the DEHACKED patch reaching a replacement class.
-  * The Lost Soul (facehugger) gets its own death sound (alien/hugger_die, from alien_sounds.wad).
+  * The Lost Soul is a facehugger that runs on the floor and leaps at you (no flying, no glow), with its own
+    death sound (alien/hugger_die, from alien_sounds.wad).
 The imp's fireball (BAL1) is recolored by build_all.sh's green_fireball.wad; the acid reuses those sprites.
 
 usage: build_alien_attacks.py --out OUT_DIR --freedoom FREEDOOM_ROOT --iwad IWAD
@@ -113,9 +114,50 @@ ACTOR AlienSpitter : DoomImp replaces DoomImp
 	PainSound "demon/pain"
 }
 
+// The facehugger runs along the floor instead of floating, and leaps at you: a short hop toward the
+// target that bites if it lands on you. (A Lost Soul's own charge keeps bouncing once it has gravity.)
+// The Carrier (Pain Elemental) still spits them out; they drop to the floor.
 ACTOR AlienHugger : LostSoul replaces LostSoul
 {
+	-FLOAT
+	-NOGRAVITY
+	-DONTFALL
+	Radius 12
+	Height 20
+	Speed 12
 	DeathSound "alien/hugger_die"
+	States
+	{
+	Spawn:
+		SKUL AB 10 A_Look
+		Loop
+	See:
+		SKUL AB 3 A_Chase
+		Loop
+	Missile:
+		SKUL C 6 A_FaceTarget
+		SKUL D 0 A_StartSound("skull/melee", CHAN_VOICE)
+		SKUL D 0 ThrustThingZ(0, 28, 0, 0)
+		SKUL D 1 A_Recoil(-12)
+		SKUL DDDDDDDDDDDDDD 1 A_JumpIfCloser(48, "Latch")
+		SKUL C 6 A_Stop
+		Goto See
+	Latch:
+		SKUL C 0 A_Stop
+		SKUL C 8 A_CustomMeleeAttack(random(3, 24))
+		Goto See
+	Pain:
+		SKUL E 3
+		SKUL E 3 A_Pain
+		Goto See
+	Death:
+		SKUL F 6
+		SKUL G 6 A_Scream
+		SKUL H 6
+		SKUL I 6 A_NoBlocking
+		SKUL JK 6
+		Stop
+	}
 }
 """
 # The other aliens only need acid blood.

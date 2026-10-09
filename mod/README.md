@@ -161,7 +161,9 @@ running them in `dsda-doom`.
   a burst egg and a resin pod.
 - **Alien attacks** (`build_alien_attacks.py`, **GZDoom/UZDoom only**): the Spitter chaingunner, Queen (spiderdemon),
   Widow (arachnotron) and Dragon (cyberdemon) fire green acid instead of bullets, plasma and rockets, via DECORATE
-  replacements; the cacodemon, mancubus and revenant projectiles are recoloured green. Every alien bleeds green
+  replacements; the cacodemon, mancubus and revenant projectiles are recoloured green. The Lost Soul is a facehugger that
+  runs on the floor (no flying, no glow, 0.7 size) and leaps at the player, biting if it lands on them; the
+  Carrier (Pain Elemental) spits them out and they drop to the floor. Every alien bleeds green
   acid (`BloodColor`); this script owns all the alien DECORATE replacements, so no two WADs replace the same class.
 - **SOM energy weapons** (`build_som_variants.py`): each SOM look fires with its own TGMC laser or plasma sound
   through a custom bullet attack (`A_CustomBulletAttack` + `SNDINFO`), so the player's guns keep the normal sounds.

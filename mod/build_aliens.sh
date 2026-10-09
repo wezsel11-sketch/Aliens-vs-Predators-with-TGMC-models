@@ -31,7 +31,7 @@ while IFS='|' read -r PRE CASTE WALK DEAD WAD SCALE FRONT; do
     --out "$WADS/$WAD"
 done <<'TABLE'
 SARG|runner|Runner Walking|Runner Dead|alien_pinky.wad|0.85
-SKUL|Effects|facehugger|facehugger_dead|alien_lostsoul.wad
+SKUL|Effects|facehugger|facehugger_dead|alien_lostsoul.wad|0.7
 HEAD|shrike|Shrike Walking|Shrike Dead|alien_cacodemon.wad
 BOSS|crusher|Crusher Walking|Crusher Dead|alien_baron.wad
 BOS2|warrior|Warrior Walking|Warrior Dead|alien_hellknight.wad
